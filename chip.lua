@@ -100,6 +100,7 @@ function gchip.init(mode) -- make a new instance of chip8
         chip.pc = chip.pop()
       else
         print('unknown instruction!')
+      end
     elseif c == 1 then
       pr('executing jump')
       pr('pc has gone from '..chip.pc.. ' to '..nnn)
