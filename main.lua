@@ -14,7 +14,12 @@ function love.load() -- called once at the very start of execution
   bit = require('bit') -- load LuaJIT's bitwise library
   tb = bit.tobit -- define shortcuts from bit library
   th = bit.tohex
-  
+  lshift = bit.lshift
+  rshift = bit.rshift
+  band = bit.band
+  function get(x,i)
+    return string.sub(x,i+1,i+1)
+  end
   gchip = require('chip') -- load the chip8 interpreter
   
   function loadtochip(file,chip) --load a file into chip8's memory

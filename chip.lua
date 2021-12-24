@@ -6,7 +6,8 @@ function gchip.init(mode) -- make a new instance of chip8
   mode = mode or "common" -- define default mode.
   local chip = {}
   
-  chip.pc = 0 -- the program counter
+  chip.pc = 0x200 -- the program counter
+  chip.index = 0 -- index register
   
   chip.stack = {} -- stack for subroutines
   
@@ -56,11 +57,20 @@ function gchip.init(mode) -- make a new instance of chip8
     end
   end
   
-  function chip:update()
+  function chip.decode(b1,b2)
+    local c = rshift(band(b1,0xf0),4) -- first nibble, the instruction
+    local x = band(b1,0x0f) -- second nibble, for a register
+    local y = rshift(band(b2,0xf0),4) -- third nibble, for a register
+    local n = band(b2,0x0f) -- fourth nibble, 4 bit number
+    local nn = b2 -- second byte, 8 bit number
+    local nnn = x*256 + b2 -- nibbles 2 3 and 4, 12 bits
+  end
+  
+  function chip.update()
     
   end
   
-  function chip:draw()
+  function chip.draw()
     
   end
   
