@@ -111,6 +111,26 @@ function gchip.init(mode) -- make a new instance of chip8
       -- go to subroutine
       chip.push(chip.pc)
       chip.pc = nnn
+    elseif c == 3 then
+      pr('executing skip if equal')
+      pr('nn is '..nn..', v'..x..'x is ' .. chip.v[x])
+      -- skip if equal
+      if nn == chip.v[x] then
+        pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
+        chip.pc = chip.pc + 2
+      else
+        pr('pc remains at '..chip.pc)
+      end
+    elseif c == 4 then
+      pr('executing skip if not equal')
+      pr('nn is '..nn..', v'..x..'x is ' .. chip.v[x])
+      -- skip if not equal
+      if nn ~= chip.v[x] then
+        pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
+        chip.pc = chip.pc + 2
+      else
+        pr('pc remains at '..chip.pc)
+      end
     elseif c == 6 then
       pr('executing set')
       pr('v'..x..' has gone from '..chip.v[x] .. ' to '.. nn)
