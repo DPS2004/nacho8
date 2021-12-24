@@ -1,6 +1,8 @@
+--ideally, this file is *entirely* separated from love2d.
+
 local gchip = {}
 
-function gchip:init(self,mode) -- make a new instance of chip8
+function gchip.init(mode) -- make a new instance of chip8
   mode = mode or "common" -- define default mode.
   local chip = {}
   
@@ -8,13 +10,60 @@ function gchip:init(self,mode) -- make a new instance of chip8
   
   chip.stack = {} -- stack for subroutines
   
+  chip.screenupdated = true -- has a function that modifies the screen been called?
+  
   chip.delay = 0 -- sound and delay timers
   chip.sound = 0
   
   chip.v = {}
-  for i=0,15 do --set up v0-vf
+  for i=0,15 do -- set up v0-vf
     chip.v[i] = 0
   end
+  
+  chip.mem = {}
+  for i=0,4096 do -- set up memory
+    chip.mem[i] = 0
+  end
+  
+  local fontdata = { --font data from tobiasvl.github.io
+    0xF0, 0x90, 0x90, 0x90, 0xF0,
+    0x20, 0x60, 0x20, 0x20, 0x70,
+    0xF0, 0x10, 0xF0, 0x80, 0xF0,
+    0xF0, 0x10, 0xF0, 0x10, 0xF0,
+    0x90, 0x90, 0xF0, 0x10, 0x10,
+    0xF0, 0x80, 0xF0, 0x10, 0xF0,
+    0xF0, 0x80, 0xF0, 0x90, 0xF0,
+    0xF0, 0x10, 0x20, 0x40, 0x40,
+    0xF0, 0x90, 0xF0, 0x90, 0xF0,
+    0xF0, 0x90, 0xF0, 0x10, 0xF0,
+    0xF0, 0x90, 0xF0, 0x90, 0x90,
+    0xE0, 0x90, 0xE0, 0x90, 0xE0,
+    0xF0, 0x80, 0x80, 0x80, 0xF0,
+    0xE0, 0x90, 0x90, 0x90, 0xE0,
+    0xF0, 0x80, 0xF0, 0x80, 0xF0,
+    0xF0, 0x80, 0xF0, 0x80, 0x80
+  }
+  
+  for i,v in ipairs(fontdata) do --load into memory starting at 0x050
+    chip.mem[0x050+(i-1)] = v
+  end
+  
+  chip.display = {}
+  for x=0,63 do
+    chip.display[x] = {}
+    for y= 0,31 do
+      chip.display[x][y] = false -- initialize all pixels to black
+    end
+  end
+  
+  function chip:update()
+    
+  end
+  
+  function chip:draw()
+    
+  end
+  
   
   return chip
   
