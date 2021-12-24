@@ -19,6 +19,10 @@ function gchip.init(mode) -- make a new instance of chip8
     return table.remove(chip.stack)
   end
   
+  function chip.peek() -- look at last item in stack
+    return chip.stack[#chip.stack]
+  end
+  
   chip.screenupdated = true -- has a function that modifies the screen been called?
   
   chip.delay = 0 -- sound and delay timers
@@ -90,14 +94,22 @@ function gchip.init(mode) -- make a new instance of chip8
         end
         chip.screenupdated = true
       elseif nnn == 0x0ee then
-        pr('executing pop')
-        
+        pr('executing return from subroutine')
+        pr('pc has gone from '..chip.pc ..' to '..chip.peek())
+        --return from subroutine
+        chip.pc = chip.pop()
       else
         print('unknown instruction!')
     elseif c == 1 then
       pr('executing jump')
       pr('pc has gone from '..chip.pc.. ' to '..nnn)
       -- jump
+      chip.pc = nnn
+    elseif c == 2 then
+      pr('executing go to subroutine')
+      pr('pc has gone from '..chip.pc.. ' to '..nnn)
+      -- go to subroutine
+      chip.push(chip.pc)
       chip.pc = nnn
     elseif c == 6 then
       pr('executing set')
