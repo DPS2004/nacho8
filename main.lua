@@ -11,14 +11,33 @@ function love.load() -- called once at the very start of execution
     end
   end
   
+  lovebird = require('lovebird/lovebird') -- load lovebird debugging library
   bit = require('bit') -- load LuaJIT's bitwise library
   tb = bit.tobit -- define shortcuts from bit library
   th = bit.tohex
+  rol = bit.rol
+  ror = bit.ror
   lshift = bit.lshift
   rshift = bit.rshift
   band = bit.band
   function get(x,i)
     return string.sub(x,i+1,i+1)
+  end
+  function gbit(byte,i)
+    return (band(rshift(byte, i), 0x01)) == 1
+  end
+  
+  function binarystring(x,reverse)
+    local t = {}
+    for i = 0, 7 do
+      if reverse then
+        table.insert(t,1, band(x, 0x01))
+      else
+        table.insert(t, band(x, 0x01))
+      end
+      x = ror(x, 1)
+    end
+    return table.concat(t)
   end
   gchip = require('chip') -- load the chip8 interpreter
   
@@ -38,19 +57,47 @@ function love.load() -- called once at the very start of execution
   chip = loadtochip(cf.file,chip) --load file defined in conf.lua
   
   
+  love.graphics.setDefaultFilter("nearest", "nearest") -- make the graphics nice and pixelly
+  love.graphics.setLineStyle("rough")
+  love.graphics.setLineJoin("miter")
   
+  chipcanvas = love.graphics.newCanvas(cf.sw,cf.sh)
+  
+
   love.window.setMode(cf.sw*cf.scale, cf.sh*cf.scale, {resizable=true}) -- set the love2d window size to that of the config
-  
-  
-  
-  
+
   
 end
 
+function love.keypressed(key, scancode, isrepeat)
+   if key == "return" then
+      chip.update()
+   end
+end
+
 function love.update()
+  lovebird.update()
   
 end
 
 function love.draw()
+  love.graphics.setColor(1,1,1,1)
+  love.graphics.setCanvas(chipcanvas)
+    love.graphics.setBlendMode("alpha")
+    if chip.screenupdated then
+      print('drawing screen')
+      love.graphics.clear()
+      for x=0,cf.sw-1 do
+        for y=0,cf.sw-1 do
+          if chip.display[x][y] then
+            love.graphics.points(x,y)
+          end
+        end
+      end
+      chip.screenupdated = false
+    end
+    love.graphics.setBlendMode("alpha")
+  love.graphics.setCanvas()
+  love.graphics.draw(chipcanvas,0,0,0,cf.scale,cf.scale)
 
 end

@@ -7,7 +7,7 @@ function love.conf(t) -- love2d config
     file = "IBM Logo.ch8", -- file to load into memory
     sw = 64, -- screen width
     sh = 32, -- screen height
-    scale = 4, -- screen scale
+    scale = 8, -- screen scale
     chatty = true,
   }
 end
