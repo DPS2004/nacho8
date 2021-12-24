@@ -1,8 +1,9 @@
 local config = {
   
-  sw = 64,
-  sh = 32,
-  scale = 4,
+  sw = 64, -- screen width
+  sh = 32, -- screen height
+  scale = 4, -- screen scale
+  
 }
 
 return config
