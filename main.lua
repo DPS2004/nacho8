@@ -6,7 +6,7 @@
 function love.load() -- called once at the very start of execution
   
   function pr(x) 
-    if cf.chatty then -- helper function to print only if its asked for
+    if prgconf.chatty then -- helper function to print only if its asked for
       print(x)
     end
   end
@@ -20,6 +20,8 @@ function love.load() -- called once at the very start of execution
   lshift = bit.lshift
   rshift = bit.rshift
   band = bit.band
+  bor = bit.bor
+  bxor = bit.bxor
   function get(x,i)
     return string.sub(x,i+1,i+1)
   end
@@ -53,18 +55,18 @@ function love.load() -- called once at the very start of execution
     return chip
   end
   
-  chip = gchip.init() -- init chip 8
-  chip = loadtochip(cf.file,chip) --load file defined in conf.lua
+  chip = gchip.init(prgconf.mode,prgconf.custom) -- init chip 8
+  chip = loadtochip(prgconf.file,chip) --load file defined in conf.lua
   
   
   love.graphics.setDefaultFilter("nearest", "nearest") -- make the graphics nice and pixelly
   love.graphics.setLineStyle("rough")
   love.graphics.setLineJoin("miter")
   
-  chipcanvas = love.graphics.newCanvas(cf.sw,cf.sh)
+  chipcanvas = love.graphics.newCanvas(chip.cf.sw,chip.cf.sh)
   
 
-  love.window.setMode(cf.sw*cf.scale, cf.sh*cf.scale, {resizable=true}) -- set the love2d window size to that of the config
+  love.window.setMode(chip.cf.sw*prgconf.scale, chip.cf.sh*prgconf.scale, {resizable=true}) -- set the love2d window size to that of the config
 
   
 end
@@ -87,8 +89,8 @@ function love.draw()
     if chip.screenupdated then
       print('drawing screen')
       love.graphics.clear()
-      for x=0,cf.sw-1 do
-        for y=0,cf.sw-1 do
+      for x=0,chip.cf.sw-1 do
+        for y=0,chip.cf.sw-1 do
           if chip.display[x][y] then
             love.graphics.points(x,y)
           end
@@ -98,6 +100,6 @@ function love.draw()
     end
     love.graphics.setBlendMode("alpha")
   love.graphics.setCanvas()
-  love.graphics.draw(chipcanvas,0,0,0,cf.scale,cf.scale)
+  love.graphics.draw(chipcanvas,0,0,0,prgconf.scale,prgconf.scale)
 
 end

@@ -2,9 +2,24 @@
 
 local gchip = {}
 
-function gchip.init(mode) -- make a new instance of chip8
-  mode = mode or "common" -- define default mode.
+function gchip.init(mode,cmode) -- make a new instance of chip8
   local chip = {}
+  
+  chip.mode = mode or "common" -- define default mode.
+  
+  chip.modelist = {
+    common = {
+      sw = 64, -- screen width
+      sh = 32, -- screen height
+      vyshift = false, --set vx to vy in 8xy6 and 8xye
+    }
+  }
+  
+  if chip.mode == 'custom' then
+    chip.cf = cmode
+  else
+    chip.cf = chip.modelist[chip.mode]
+  end
   
   chip.pc = 0x200 -- the program counter
   chip.index = 0 -- index register
@@ -114,7 +129,7 @@ function gchip.init(mode) -- make a new instance of chip8
       chip.pc = nnn
     elseif c == 3 then
       pr('executing skip if equal')
-      pr('nn is '..nn..', v'..x..'x is ' .. chip.v[x])
+      pr('nn is '..nn..', v'..x..' is ' .. chip.v[x])
       -- skip if equal
       if nn == chip.v[x] then
         pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
@@ -124,9 +139,19 @@ function gchip.init(mode) -- make a new instance of chip8
       end
     elseif c == 4 then
       pr('executing skip if not equal')
-      pr('nn is '..nn..', v'..x..'x is ' .. chip.v[x])
+      pr('nn is '..nn..', v'..x..' is ' .. chip.v[x])
       -- skip if not equal
       if nn ~= chip.v[x] then
+        pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
+        chip.pc = chip.pc + 2
+      else
+        pr('pc remains at '..chip.pc)
+      end
+    elseif c == 5 then
+      pr('executing register skip if equal')
+      pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
+      -- register skip if equal
+      if chip.v[x] == chip.v[y] then
         pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
         chip.pc = chip.pc + 2
       else
@@ -142,6 +167,79 @@ function gchip.init(mode) -- make a new instance of chip8
       pr('executing add')
       pr('v'..x..' has gone from '..chip.v[x] .. ' to '.. (chip.v[x] + nn) % 256)
       chip.v[x] = (chip.v[x] + nn) % 256
+    elseif c == 8 then
+      if n == 0 then
+        pr('executing register set')
+        pr('setting v'..x..' from ' .. chip.v[x]..' to v'..y..', which is ' .. chip.v[y])
+        chip.v[x] = chip.v[y]
+      elseif n == 1 then
+        pr('executing register or')
+        pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
+        pr('setting v'..x..' to ' .. bor(chip.v[x],chip.v[y]))
+        chip.v[x] = bor(chip.v[x],chip.v[y])
+      elseif n == 2 then
+        pr('executing register or')
+        pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
+        pr('setting v'..x..' to ' .. band(chip.v[x],chip.v[y]))
+        chip.v[x] = band(chip.v[x],chip.v[y])
+      elseif n == 3 then
+        pr('executing register xor')
+        pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
+        pr('setting v'..x..' to ' .. bxor(chip.v[x],chip.v[y]))
+        chip.v[x] = bxor(chip.v[x],chip.v[y])
+      elseif n == 4 then
+        pr('executing register add')
+        pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
+        pr('setting v'..x..' to ' .. (chip.v[x] + chip.v[y]))
+        chip.v[x] = (chip.v[x] + chip.v[y])
+        if chip.v[x] > 256 then
+          chip.v[x] = chip.v[x] % 256
+          pr('setting vf to 1 for overflow')
+          chip.v[0xf] = 1
+        else
+          pr('setting vf to 0')
+          chip.v[0xf] = 0
+        end
+      elseif n == 5 then
+        pr('executing register subtract')
+        pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
+        pr('setting v'..x..' to ' .. (chip.v[x] - chip.v[y]))
+        chip.v[x] = (chip.v[x] - chip.v[y])
+        
+        if chip.v[x] < 0 then
+          chip.v[x] = chip.v[x] % 256
+          pr('setting vf to 0 for underflow')
+          chip.v[0xf] = 1
+        else
+          pr('setting vf to 1')
+          chip.v[0xf] = 0
+        end
+        
+      elseif n == 7 then
+        pr('executing register subtract')
+        pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
+        pr('setting v'..x..' to ' .. (chip.v[y]-chip.v[x]))
+        chip.v[x] = (chip.v[y]-chip.v[x])
+        if chip.v[x] < 0 then
+          chip.v[x] = chip.v[x] % 256
+          pr('setting vf to 0 for underflow')
+          chip.v[0xf] = 1
+        else
+          pr('setting vf to 1')
+          chip.v[0xf] = 0
+        end
+      end
+      
+    elseif c == 9 then
+      pr('executing register skip if not equal')
+      pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
+      -- register skip if not equal
+      if chip.v[x] ~= chip.v[y] then
+        pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
+        chip.pc = chip.pc + 2
+      else
+        pr('pc remains at '..chip.pc)
+      end
     elseif c == 0xa then
       pr('executing set index')
       pr('index has gone from '..chip.index .. ' to '.. nnn)
