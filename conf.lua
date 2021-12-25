@@ -9,12 +9,15 @@ function love.conf(t) -- love2d config
     chatty = true,
     -- valid modes:
     -- common
+    -- schip
     -- custom
     mode = "common",
+    -- the custom mode gets loaded from this table
     custom = {
       sw = 64, -- screen width
       sh = 32, -- screen height
       vyshift = false, --set vx to vy in 8xy6 and 8xye
+      vxoffsetjump = false -- false for bnnn, true for bxnn
     }
   }
 end

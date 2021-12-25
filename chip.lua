@@ -12,6 +12,13 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
       sw = 64, -- screen width
       sh = 32, -- screen height
       vyshift = false, --set vx to vy in 8xy6 and 8xye
+      vxoffsetjump = false -- false for bnnn, true for bxnn
+    },
+    schip = {
+      sw = 128, -- screen width
+      sh = 64, -- screen height
+      vyshift = true, --set vx to vy in 8xy6 and 8xye
+      vxoffsetjump = true -- false for bnnn, true for bxnn
     }
   }
   
@@ -77,9 +84,9 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
   end
   
   chip.display = {}
-  for x=0,63 do
+  for x=0,chip.cf.sw-1 do
     chip.display[x] = {}
-    for y= 0,31 do
+    for y= 0,chip.cf.sh-1 do
       chip.display[x][y] = false -- initialize all pixels to black
     end
   end
@@ -248,15 +255,15 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
     elseif c == 0xd then
       pr('executing draw at '..chip.v[x]..','..chip.v[y])
       -- display to screen (oh god)
-      local dx = chip.v[x] % 64
-      local dy = chip.v[y] % 32
+      local dx = chip.v[x] % chip.cf.sw
+      local dy = chip.v[y] % chip.cf.sh
       chip.v[0xf] = 0 -- set vf to 0
       for dyi = 0,n-1 do -- iterate n times
         local sprbyte = chip.mem[chip.index+dyi] -- get byte from memory
         pr('drawing ' .. binarystring(sprbyte,true))
         for dxi=0,7 do -- iterate through the byte
           local val = gbit(sprbyte,7-dxi) -- get value of bit
-          if dx+dxi < 64 and dy+dyi < 32 then --make sure we are in bounds
+          if dx+dxi < chip.cf.sw and dy+dyi < chip.cf.sh then --make sure we are in bounds
             if val  then
               if chip.display[dx+dxi][dy+dyi] then 
                 chip.v[0xf] = 1
