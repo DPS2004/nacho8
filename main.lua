@@ -30,6 +30,8 @@ function love.load() -- called once at the very start of execution
   end
   
   
+  
+  
   --print(gbit(0x2,0)) -- false
   --print(gbit(0x2,1)) -- true
   
@@ -62,6 +64,11 @@ function love.load() -- called once at the very start of execution
   chip = gchip.init(prgconf.mode,prgconf.custom) -- init chip 8
   chip = loadtochip(prgconf.file,chip) --load file defined in conf.lua
   
+  chip.keys = {}
+  
+  for k,v in pairs(prgconf.keys) do
+    chip.keys[k] = {pressed=false,released=false,down=false}
+  end
   
   love.graphics.setDefaultFilter("nearest", "nearest") -- make the graphics nice and pixelly
   love.graphics.setLineStyle("rough")
@@ -76,12 +83,36 @@ function love.load() -- called once at the very start of execution
 end
 
 function love.keypressed(key, scancode, isrepeat)
-   if key == "return" then
+  if prgconf.framebyframe then
+    if key == "return" then
       chip.update()
-   end
+    end
+  end
+  
+  for k,v in pairs(prgconf.keys) do
+    chip.keys[k].pressed = false
+    if key == v then
+      chip.keys[k].pressed = true
+      chip.keys[k].down = true
+    end
+  end
 end
 
+function love.keyreleased(key, scancode, isrepeat)
+  for k,v in pairs(prgconf.keys) do
+    chip.keys[k].released = false
+    if key == v then
+      chip.keys[k].released = true
+      chip.keys[k].down = false
+    end
+  end
+end
+
+
 function love.update()
+  if not prgconf.framebyframe then
+    chip.update()
+  end
   lovebird.update()
   
 end

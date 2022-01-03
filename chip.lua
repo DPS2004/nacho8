@@ -327,8 +327,32 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
         end
       end
       chip.screenupdated = true
+    elseif c == 0xe then
+      
+      if nn == 0x9e then
+        --skip if key down
+        pr('executing skip if key down')
+        if chip.keys[x].down then
+          pr('key '..x..' is down')
+          pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
+          chip.pc = chip.pc + 2
+        else
+          pr('key '..x..' is not down')
+        end
+        
+      elseif nn == 0xa1 then
+        --skip if key not down
+        pr('executing skip if key not down')
+        if chip.keys[x].down then
+          pr('key '..x..' is down')
+        else
+          pr('key '..x..' is not down')
+          pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
+          chip.pc = chip.pc + 2
+        end
+      end
     else
-      print('unknown instruction!')
+      print('!!!!!!!!!!!!!!!!!unknown instruction!!!!!!!!!!!!!!!!!!!!')
     end
   end
   
