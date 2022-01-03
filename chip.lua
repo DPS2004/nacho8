@@ -14,7 +14,8 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
       memsize = 4096, -- how many bytes of memory
       vyshift = true, --set vx to vy in 8xy6 and 8xye
       vxoffsetjump = false, -- false for bnnn, true for bxnn
-      indexoverflow = true -- true to set vf to 1 if index goes over 1000
+      indexoverflow = true, -- true to set vf to 1 if index goes over 1000
+      tempstoreload = true -- dont increment i for fx55 and fx65, use a temporary variable
     },
     schip = {
       sw = 128, -- screen width
@@ -22,7 +23,8 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
       memsize = 4096, -- how many bytes of memory
       vyshift = false, --set vx to vy in 8xy6 and 8xye
       vxoffsetjump = true, -- false for bnnn, true for bxnn
-      indexoverflow = true -- true to set vf to 1 if index goes over 1000
+      indexoverflow = true, -- true to set vf to 1 if index goes over 1000
+      tempstoreload = true -- dont increment i for fx55 and fx65, use a temporary variable
     }
   }
   
@@ -437,6 +439,35 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
         chip.mem[chip.index+0] = math.floor(num/(10^2))%10
         chip.mem[chip.index+1] = math.floor(num/(10^1))%10
         chip.mem[chip.index+2] = math.floor(num/(10^0))%10
+        
+        
+      elseif nn == 0x55 then
+        --store memory
+        pr('executing store to memory')
+        pr('storing from v0 to v'..x..', starting at mem address '..chip.index)
+        for i=0,x do
+          pr('changing memory '..chip.index+i ..' from '..chip.mem[chip.index+i]..' to v'..i..', which is '..chip.v[i])
+          chip.mem[chip.index+i] = chip.v[i]
+        end
+        
+        if not chip.cf.tempstoreload then
+          pr('changing index from '..chip.index..' to ' .. chip.index + x + 1)
+          chip.index = chip.index + x + 1
+        end
+        
+      elseif nn == 0x65 then
+        --read memory
+        pr('executing read from memory')
+        pr('reading from mem address '..chip.index ..' to '..chip.index+x..' and storing storing in v0 to v'..x)
+        for i=0,x do
+          pr('changing v'..i..' from '..chip.v[i]..' to mem '..chip.index+i..', which is '..chip.mem[chip.index+i])
+          chip.v[i] = chip.mem[chip.index+i]
+        end
+        
+        if not chip.cf.tempstoreload then
+          pr('changing index from '..chip.index..' to ' .. chip.index + x + 1)
+          chip.index = chip.index + x + 1
+        end
         
       end
     else
