@@ -16,7 +16,7 @@ function love.conf(t) -- love2d config
     custom = {
       sw = 64, -- screen width
       sh = 32, -- screen height
-      vyshift = false, --set vx to vy in 8xy6 and 8xye
+      vyshift = true, --set vx to vy in 8xy6 and 8xye
       vxoffsetjump = false -- false for bnnn, true for bxnn
     }
   }

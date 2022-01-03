@@ -29,6 +29,10 @@ function love.load() -- called once at the very start of execution
     return (band(rshift(byte, i), 0x01)) == 1
   end
   
+  
+  --print(gbit(0x2,0)) -- false
+  --print(gbit(0x2,1)) -- true
+  
   function binarystring(x,reverse)
     local t = {}
     for i = 0, 7 do

@@ -11,13 +11,13 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
     common = {
       sw = 64, -- screen width
       sh = 32, -- screen height
-      vyshift = false, --set vx to vy in 8xy6 and 8xye
+      vyshift = true, --set vx to vy in 8xy6 and 8xye
       vxoffsetjump = false -- false for bnnn, true for bxnn
     },
     schip = {
       sw = 128, -- screen width
       sh = 64, -- screen height
-      vyshift = true, --set vx to vy in 8xy6 and 8xye
+      vyshift = false, --set vx to vy in 8xy6 and 8xye
       vxoffsetjump = true -- false for bnnn, true for bxnn
     }
   }
@@ -221,7 +221,24 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
           pr('setting vf to 1')
           chip.v[0xf] = 0
         end
+      elseif n == 6 then
+        pr('executing register shift right')
+        if chip.cf.vyshift then
+          pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
+          pr('setting v'..x..' to ' .. chip.v[y])
+          chip.v[x] = chip.v[y]
+        end
         
+        local shiftout = gbit(chip.v[x],0)
+        pr('setting v'..x..' from '.. chip.v[x]..' to '..rshift(chip.v[x]))
+        chip.v[x] = rshift(chip.v[x])
+        if shiftout then
+          v[0xf] = 1
+          pr('shifted out 1')
+        else
+          v[0xf] = 1
+          pr('shifted out 0')
+        end
       elseif n == 7 then
         pr('executing register subtract')
         pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
@@ -235,8 +252,25 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
           pr('setting vf to 1')
           chip.v[0xf] = 0
         end
+      elseif n == 0xe then
+        pr('executing register shift left')
+        if chip.cf.vyshift then
+          pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
+          pr('setting v'..x..' to ' .. chip.v[y])
+          chip.v[x] = chip.v[y]
+        end
+        
+        local shiftout = gbit(chip.v[x],7)
+        pr('setting v'..x..' from '.. chip.v[x]..' to '..lshift(chip.v[x]))
+        chip.v[x] = lshift(chip.v[x])
+        if shiftout then
+          v[0xf] = 1
+          pr('shifted out 1')
+        else
+          v[0xf] = 1
+          pr('shifted out 0')
+        end
       end
-      
     elseif c == 9 then
       pr('executing register skip if not equal')
       pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
@@ -252,6 +286,23 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
       pr('index has gone from '..chip.index .. ' to '.. nnn)
       -- set index
       chip.index = nnn
+    elseif c == 0xb then
+      pr('executing jump with offset')
+      -- offset jump
+      if not vxoffsetjump then
+        pr('pc has gone from '..chip.pc.. ' to '..nnn .. ' + v0, ('..nnn..'+'..chip.v[0]..'=' .. nnn + chip.v[0] .. ')')
+        chip.pc = nnn + chip.v[0]
+      else
+        pr('pc has gone from '..chip.pc.. ' to '..nnn .. ' + v'..x..', ('..nnn..'+'..chip.v[x]..'=' .. nnn + chip.v[x] .. ')')
+        chip.pc = nnn + chip.v[x]
+      end
+    elseif c == 0xc then
+      pr('executing random number')
+      local rn = band(math.random(0,255),nn)
+      pr('setting v'..x..' from '.. chip.v[x]..' to '.. rn)
+      chip.v[x] = rn
+      -- random number
+      
     elseif c == 0xd then
       pr('executing draw at '..chip.v[x]..','..chip.v[y])
       -- display to screen (oh god)
