@@ -4,9 +4,9 @@ function love.conf(t) -- love2d config
   t.console = true
   
   prgconf = { --chip8 config
-    file = "test_opcode.ch8", -- file to load into memory
+    file = "IBM Logo.ch8", -- file to load into memory
     scale = 8, -- screen scale
-    chatty = true,
+    chatty = false, 
     -- valid modes:
     -- common
     -- schip
@@ -25,11 +25,19 @@ function love.conf(t) -- love2d config
     },
     
     
-    keys = {}
+    hotkeys = {
+      frameadvance = 'enter',
+      savedump = '5'
+    },
+    extras = {-- misc things to pass directly to chip 8, mostly debug
+      dumper = true, -- enable to save a very janky human-readable ish file
+    }
     
     
     
   }
+  
+  prgconf.keys = {}
   -- key mapping
   -- 1,2,3,C
   -- 4,5,6,D
@@ -54,5 +62,8 @@ function love.conf(t) -- love2d config
   prgconf.keys[0x0] = 'x'
   prgconf.keys[0xb] = 'c'
   prgconf.keys[0xf] = 'v'
+  
+  
+  
   
 end

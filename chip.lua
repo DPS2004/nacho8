@@ -2,10 +2,32 @@
 
 local gchip = {}
 
-function gchip.init(mode,cmode) -- make a new instance of chip8
+function gchip.init(mode,cmode,extras) -- make a new instance of chip8
   local chip = {}
   
+  if extras then
+    for k,v in pairs(extras) do
+      chip[k] = v
+    end
+  end
+  
+  chip.dmp = function() end
+  
+  if chip.dumper then
+    chip.dump = {}
+    chip.dmp = function(val,pos,length)
+      pos = pos or chip.pc
+      length = length or 2
+      
+      pos = pos - 2
+      
+      chip.dump[pos] = {length=length - 1,val=val,og=chip.last,pos=pos}
+    end
+  end
+  
   chip.mode = mode or "common" -- define default mode.
+  
+  
   
   chip.modelist = {
     
@@ -48,6 +70,8 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
   else
     chip.cf = chip.modelist[chip.mode]
   end
+  
+  chip.last = '0000'
   
   chip.pc = 0x200 -- the program counter
   chip.index = 0 -- index register
@@ -113,7 +137,8 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
   end
   
   function chip.decode(b1,b2)
-    pr('decoding '..tohex(b1,2)..tohex(b2,2))
+    chip.last = tohex(b1,2)..tohex(b2,2)
+    pr('decoding '..chip.last)
     local c = rshift(band(b1,0xf0),4) -- first nibble, the instruction
     local x = band(b1,0x0f) -- second nibble, for a register
     local y = rshift(band(b2,0xf0),4) -- third nibble, for a register
@@ -129,6 +154,8 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
     if c == 0 then
       if nnn == 0x0e0 then
         -- clear screen
+        chip.dmp('clearscreen')
+        
         pr('executing clear screen')
         for dx=0,#chip.display do
           for dy=0,#chip.display[dx] do
@@ -137,28 +164,37 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
         end
         chip.screenupdated = true
       elseif nnn == 0x0ee then
-        pr('executing return from subroutine')
-        pr('pc has gone from '..chip.pc ..' to '..chip.peek())
         --return from subroutine
+        pr('executing return from subroutine')
+        chip.dmp('return')
+        
+        pr('pc has gone from '..chip.pc ..' to '..chip.peek())
         chip.pc = chip.pop()
       else
         print('unknown instruction!')
       end
     elseif c == 1 then
-      pr('executing jump')
-      pr('pc has gone from '..chip.pc.. ' to '..nnn)
       -- jump
-      chip.pc = nnn
-    elseif c == 2 then
-      pr('executing go to subroutine')
+      pr('executing jump')
+      chip.dmp('jump('..nnn..')')
+      
       pr('pc has gone from '..chip.pc.. ' to '..nnn)
+      chip.pc = nnn
+      
+    elseif c == 2 then
       -- go to subroutine
+      pr('executing go to subroutine')
+      chip.dmp('goto('..nnn..')')
+      
+      pr('pc has gone from '..chip.pc.. ' to '..nnn)
       chip.push(chip.pc)
       chip.pc = nnn
     elseif c == 3 then
-      pr('executing skip if equal')
-      pr('nn is '..nn..', v'..x..' is ' .. chip.v[x])
       -- skip if equal
+      pr('executing skip if equal')
+      chip.dmp('if v'..x..' == '..nn..' then jump('..chip.pc+2 ..') --skip next')
+      
+      pr('nn is '..nn..', v'..x..' is ' .. chip.v[x])
       if nn == chip.v[x] then
         pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
         chip.pc = chip.pc + 2
@@ -166,9 +202,11 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
         pr('pc remains at '..chip.pc)
       end
     elseif c == 4 then
-      pr('executing skip if not equal')
-      pr('nn is '..nn..', v'..x..' is ' .. chip.v[x])
       -- skip if not equal
+      pr('executing skip if not equal')
+      chip.dmp('if v'..x..' != '..nn..' then jump('..chip.pc+2 ..') --skip next')
+      
+      pr('nn is '..nn..', v'..x..' is ' .. chip.v[x])
       if nn ~= chip.v[x] then
         pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
         chip.pc = chip.pc + 2
@@ -176,9 +214,11 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
         pr('pc remains at '..chip.pc)
       end
     elseif c == 5 then
-      pr('executing register skip if equal')
-      pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
       -- register skip if equal
+      pr('executing register skip if equal')
+      chip.dmp('if v'..x..' == v'..y..' then jump('..chip.pc+2 ..') --skip next')
+      
+      pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
       if chip.v[x] == chip.v[y] then
         pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
         chip.pc = chip.pc + 2
@@ -186,37 +226,57 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
         pr('pc remains at '..chip.pc)
       end
     elseif c == 6 then
-      pr('executing set')
-      pr('v'..x..' has gone from '..chip.v[x] .. ' to '.. nn)
       -- set
+      pr('executing set')
+      chip.dmp('v'..x..' = '..nn)
+      
+      pr('v'..x..' has gone from '..chip.v[x] .. ' to '.. nn)
       chip.v[x] = nn
     elseif c == 7 then
       -- add
       pr('executing add')
+      chip.dmp('v'..x..' += '..nn)
+      
+      
       pr('v'..x..' has gone from '..chip.v[x] .. ' to '.. (chip.v[x] + nn) % 256)
       chip.v[x] = (chip.v[x] + nn) % 256
     elseif c == 8 then
       if n == 0 then
+        -- register set
         pr('executing register set')
+        chip.dmp('v'..x..' = v'..y)
+      
         pr('setting v'..x..' from ' .. chip.v[x]..' to v'..y..', which is ' .. chip.v[y])
         chip.v[x] = chip.v[y]
       elseif n == 1 then
+        --register or
         pr('executing register or')
+        chip.dmp('v'..x..' = bor(v'..x..'v'..y..')')
+        
         pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
         pr('setting v'..x..' to ' .. bor(chip.v[x],chip.v[y]))
         chip.v[x] = bor(chip.v[x],chip.v[y])
       elseif n == 2 then
-        pr('executing register or')
+        --register and
+        pr('executing register and')
+        chip.dmp('v'..x..' = band(v'..x..'v'..y..')')
+        
         pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
         pr('setting v'..x..' to ' .. band(chip.v[x],chip.v[y]))
         chip.v[x] = band(chip.v[x],chip.v[y])
       elseif n == 3 then
+        --register xor
         pr('executing register xor')
+        chip.dmp('v'..x..' = bxor(v'..x..'v'..y..')')
+        
         pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
         pr('setting v'..x..' to ' .. bxor(chip.v[x],chip.v[y]))
         chip.v[x] = bxor(chip.v[x],chip.v[y])
       elseif n == 4 then
+        --register add
         pr('executing register add')
+        chip.dmp('v'..x..' += v'..y)
+        
         pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
         pr('setting v'..x..' to ' .. (chip.v[x] + chip.v[y]))
         chip.v[x] = (chip.v[x] + chip.v[y])
@@ -229,7 +289,10 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
           chip.v[0xf] = 0
         end
       elseif n == 5 then
+        --register subtract
         pr('executing register subtract')
+        chip.dmp('v'..x..' -= v'..y)
+        
         pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
         pr('setting v'..x..' to ' .. (chip.v[x] - chip.v[y]))
         chip.v[x] = (chip.v[x] - chip.v[y])
@@ -243,12 +306,18 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
           chip.v[0xf] = 0
         end
       elseif n == 6 then
+        --register shift right        
         pr('executing register shift right')
+        
+        local stradd = ''
+
         if chip.cf.vyshift then
           pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
           pr('setting v'..x..' to ' .. chip.v[y])
           chip.v[x] = chip.v[y]
+          stradd = 'v'..x..' = v'..y..'\n'
         end
+        chip.dmp(stradd..'v'..x..' = rshift(v'..x..', v'..y..')')
         
         local shiftout = gbit(chip.v[x],0)
         pr('setting v'..x..' from '.. chip.v[x]..' to '..(rshift(chip.v[x],1))%256)
@@ -512,6 +581,37 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
     chip.pc = chip.pc + 2 -- increment pc
     local c,x,y,n,nn,nnn = chip.decode(b1,b2) -- decode the two bytes
     chip.execute(c,x,y,n,nn,nnn) -- interpret the decoded bytes
+  end
+  
+  function chip.savedump()
+    if chip.dumper then
+      local dstring = ''
+      local lines = {}
+      for k,v in pairs(chip.dump) do
+        table.insert(lines,k)
+      end
+      table.sort(lines)
+      local sorted = {}
+      
+      local function addleadings(x)
+        local r = tostring(x)
+        local l = 4-#r
+        for i=1,l do
+          r = '0'..r
+        end
+        return r
+      end
+        
+      
+      for i,v in ipairs(lines) do
+        local op = chip.dump[v]
+        dstring = dstring .. addleadings(op.pos) .. '-' .. addleadings(op.pos+op.length) .. ': ' .. op.og .. '\n'
+        dstring = dstring .. op.val .. '\n\n'
+      end
+      return dstring
+      
+      
+    end
   end
   
   

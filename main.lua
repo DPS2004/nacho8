@@ -61,7 +61,7 @@ function love.load() -- called once at the very start of execution
     return chip
   end
   
-  chip = gchip.init(prgconf.mode,prgconf.custom) -- init chip 8
+  chip = gchip.init(prgconf.mode,prgconf.custom,prgconf.extras) -- init chip 8
   chip = loadtochip(prgconf.file,chip) --load file defined in conf.lua
   
   chip.keys = {}
@@ -124,7 +124,7 @@ function love.draw()
   love.graphics.setCanvas(chipcanvas)
     love.graphics.setBlendMode("alpha")
     if chip.screenupdated then
-      print('drawing screen')
+      pr('drawing screen')
       love.graphics.clear()
       for x=0,chip.cf.sw-1 do
         for y=0,chip.cf.sw-1 do
