@@ -13,6 +13,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
   
   chip.dmp = function() end
   chip.dmpj = function() end
+  chip.unk = function() end
   
   if chip.dumper then
     chip.dump = {}
@@ -25,7 +26,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       
       chip.dump[pos] = {length=length - 1,val=val,og=chip.last,pos=pos}
     end
-    chip.dmpj = function(val,pos,pos2)
+    chip.dmpj = function(txt,val,pos,pos2)
       if not chip.labels[val] then
         chip.labels[val] = {}
         chip.lcount[val] = 0
@@ -44,13 +45,21 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       end
       
       if lblname then
-        chip.dmp(val..'('..lblname..')',pos2)
+        
+        
       else
       
         chip.lcount[val] = chip.lcount[val] + 1
         --haha what
         chip.labels[val][val..'_'..chip.lcount[val]] = {pos=pos}
-        chip.dmp(val..'('..val..'_'..chip.lcount[val]..')',pos2)
+        lblname = val..'_'..chip.lcount[val]
+        chip.unk(pos)
+      end
+      txt = txt:gsub('#LBL#',lblname)
+      chip.dmp(txt,pos2)
+    end
+    chip.unk = function(pos)
+      if not chip.dump[pos] then -- don't overwrite a known with an unknown
         chip.dmp('unknown',pos)
       end
     end
@@ -207,7 +216,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     elseif c == 1 then
       -- jump
       pr('executing jump')
-      chip.dmpj('goto',nnn)
+      chip.dmpj('jump(#LBL#)','jump',nnn)
       
       pr('pc has gone from '..chip.pc.. ' to '..nnn)
       chip.pc = nnn
@@ -215,7 +224,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     elseif c == 2 then
       -- go to subroutine
       pr('executing go to subroutine')
-      chip.dmpj('goto',nnn)
+      chip.dmpj('goto(#LBL#)','goto',nnn)
       
       pr('pc has gone from '..chip.pc.. ' to '..nnn)
       chip.push(chip.pc)
@@ -224,6 +233,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- skip if equal
       pr('executing skip if equal')
       chip.dmp('if v'..x..' == '..nn..' then jump('..chip.pc+2 ..') --skip next')
+      chip.unk(chip.pc+2)
       
       pr('nn is '..nn..', v'..x..' is ' .. chip.v[x])
       if nn == chip.v[x] then
@@ -236,6 +246,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- skip if not equal
       pr('executing skip if not equal')
       chip.dmp('if v'..x..' != '..nn..' then jump('..chip.pc+2 ..') --skip next')
+      chip.unk(chip.pc+2)
       
       pr('nn is '..nn..', v'..x..' is ' .. chip.v[x])
       if nn ~= chip.v[x] then
@@ -248,6 +259,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- register skip if equal
       pr('executing register skip if equal')
       chip.dmp('if v'..x..' == v'..y..' then jump('..chip.pc+2 ..') --skip next')
+      chip.unk(chip.pc+2)
       
       pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
       if chip.v[x] == chip.v[y] then
@@ -404,9 +416,12 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         end
       end
     elseif c == 9 then
-      pr('executing register skip if not equal')
-      pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
       -- register skip if not equal
+      pr('executing register skip if not equal')
+      chip.dmp('if v'..x..' != v'..y..' then jump('..chip.pc+2 ..') --skip next')
+      chip.unk(chip.pc+2)
+      
+      pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
       if chip.v[x] ~= chip.v[y] then
         pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
         chip.pc = chip.pc + 2
@@ -414,30 +429,41 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         pr('pc remains at '..chip.pc)
       end
     elseif c == 0xa then
-      pr('executing set index')
-      pr('index has gone from '..chip.index .. ' to '.. nnn)
       -- set index
+      pr('executing set index')
+      chip.dmp('index = '..nnn)
+      chip.unk(nnn)
+      
+      pr('index has gone from '..chip.index .. ' to '.. nnn)
       chip.index = nnn
+      
     elseif c == 0xb then
-      pr('executing jump with offset')
       -- offset jump
+      pr('executing jump with offset')
       if not vxoffsetjump then
+        chip.dmp('jump('..nnn..' + v0')
+        chip.unk(nnn + chip.v[0])
+        
         pr('pc has gone from '..chip.pc.. ' to '..nnn .. ' + v0, ('..nnn..'+'..chip.v[0]..'=' .. nnn + chip.v[0] .. ')')
         chip.pc = nnn + chip.v[0]
       else
+        chip.dmp('jump({'..x..'}'..y..n..' + v{'..x..'} -- {'..x..'} must be the same number')
+        chip.unk(nnn + chip.v[x])
+        
         pr('pc has gone from '..chip.pc.. ' to '..nnn .. ' + v'..x..', ('..nnn..'+'..chip.v[x]..'=' .. nnn + chip.v[x] .. ')')
         chip.pc = nnn + chip.v[x]
       end
     elseif c == 0xc then
+      -- random number
       pr('executing random number')
+      chip.dmp('v'..x..' = band(random(0,255), '..nn..')')
       local rn = band(math.random(0,255),nn)
       pr('setting v'..x..' from '.. chip.v[x]..' to '.. rn)
       chip.v[x] = rn
-      -- random number
       
     elseif c == 0xd then
-      pr('executing draw at '..chip.v[x]..','..chip.v[y])
       -- display to screen (oh god)
+      pr('executing draw at '..chip.v[x]..','..chip.v[y])
       local dx = chip.v[x] % chip.cf.sw
       local dy = chip.v[y] % chip.cf.sh
       chip.v[0xf] = 0 -- set vf to 0
@@ -652,7 +678,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         
         for _,lb in pairs(chip.labels) do
           for k,v in pairs(lb) do
-            if v.pos == op.pos then -- this label already exists!
+            if v.pos == op.pos then
               lblname = k
             end
           end

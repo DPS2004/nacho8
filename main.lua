@@ -83,13 +83,6 @@ function love.load() -- called once at the very start of execution
 end
 
 function love.keypressed(key, scancode, isrepeat)
-  if prgconf.framebyframe then
-    if key == "return" then
-      chip.timerdec()
-      chip.update()
-    end
-  end
-  
   for k,v in pairs(prgconf.keys) do
     chip.keys[k].pressed = false
     if key == v then
@@ -97,6 +90,22 @@ function love.keypressed(key, scancode, isrepeat)
       chip.keys[k].down = true
     end
   end
+  
+  if prgconf.framebyframe then
+    if key == prgconf.hotkeys.frameadvance then
+      chip.timerdec()
+      chip.update()
+    end
+  end
+  
+  if key == prgconf.hotkeys.savedump then
+    local file = io.open(prgconf.file ..'.dump','w')
+    local dump = chip.savedump()
+    file:write(dump)
+    print(dump)
+    file:close()
+  end
+  
 end
 
 function love.keyreleased(key, scancode, isrepeat)
