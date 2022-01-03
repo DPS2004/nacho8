@@ -1,8 +1,8 @@
 --ideally, this file is *entirely* separated from love2d.
 
-local gchip = {}
+local nacho = {}
 
-function gchip.init(mode,cmode,extras) -- make a new instance of chip8
+function nacho.init(mode,cmode,extras) -- make a new instance of chip8
   local chip = {}
   
   if extras then
@@ -12,16 +12,47 @@ function gchip.init(mode,cmode,extras) -- make a new instance of chip8
   end
   
   chip.dmp = function() end
+  chip.dmpj = function() end
   
   if chip.dumper then
     chip.dump = {}
+    chip.labels = {}
+    chip.lcount = {}
     chip.dmp = function(val,pos,length)
-      pos = pos or chip.pc
+      pos = pos or (chip.pc - 2)
       length = length or 2
       
-      pos = pos - 2
       
       chip.dump[pos] = {length=length - 1,val=val,og=chip.last,pos=pos}
+    end
+    chip.dmpj = function(val,pos,pos2)
+      if not chip.labels[val] then
+        chip.labels[val] = {}
+        chip.lcount[val] = 0
+      end
+      
+      local lblholder = nil
+      local lblname = nil
+      
+      for _,lb in pairs(chip.labels) do
+        for k,v in pairs(lb) do
+          if v.pos == pos then -- this label already exists!
+            lblholder = _
+            lblname = k
+          end
+        end
+      end
+      
+      if lblname then
+        chip.dmp(val..'('..lblname..')',pos2)
+      else
+      
+        chip.lcount[val] = chip.lcount[val] + 1
+        --haha what
+        chip.labels[val][val..'_'..chip.lcount[val]] = {pos=pos}
+        chip.dmp(val..'('..val..'_'..chip.lcount[val]..')',pos2)
+        chip.dmp('unknown',pos)
+      end
     end
   end
   
@@ -176,7 +207,7 @@ function gchip.init(mode,cmode,extras) -- make a new instance of chip8
     elseif c == 1 then
       -- jump
       pr('executing jump')
-      chip.dmp('jump('..nnn..')')
+      chip.dmpj('goto',nnn)
       
       pr('pc has gone from '..chip.pc.. ' to '..nnn)
       chip.pc = nnn
@@ -184,7 +215,7 @@ function gchip.init(mode,cmode,extras) -- make a new instance of chip8
     elseif c == 2 then
       -- go to subroutine
       pr('executing go to subroutine')
-      chip.dmp('goto('..nnn..')')
+      chip.dmpj('goto',nnn)
       
       pr('pc has gone from '..chip.pc.. ' to '..nnn)
       chip.push(chip.pc)
@@ -317,7 +348,8 @@ function gchip.init(mode,cmode,extras) -- make a new instance of chip8
           chip.v[x] = chip.v[y]
           stradd = 'v'..x..' = v'..y..'\n'
         end
-        chip.dmp(stradd..'v'..x..' = rshift(v'..x..', v'..y..')')
+        
+        chip.dmp(stradd..'v'..x..' = rshift(v'..x..', 1)')
         
         local shiftout = gbit(chip.v[x],0)
         pr('setting v'..x..' from '.. chip.v[x]..' to '..(rshift(chip.v[x],1))%256)
@@ -330,7 +362,10 @@ function gchip.init(mode,cmode,extras) -- make a new instance of chip8
           pr('shifted out 0')
         end
       elseif n == 7 then
+        --register subtract, but like, the other way?
         pr('executing register subtract')
+        chip.dmp('v'..x..' = v'..y..' - v'..x )
+        
         pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
         pr('setting v'..x..' to ' .. (chip.v[y]-chip.v[x]))
         chip.v[x] = (chip.v[y]-chip.v[x])
@@ -343,12 +378,19 @@ function gchip.init(mode,cmode,extras) -- make a new instance of chip8
           chip.v[0xf] = 0
         end
       elseif n == 0xe then
+        --register left shift
         pr('executing register shift left')
+        
+        local stradd = ''
+        
         if chip.cf.vyshift then
           pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
           pr('setting v'..x..' to ' .. chip.v[y])
           chip.v[x] = chip.v[y]
+          stradd = 'v'..x..' = v'..y..'\n'
         end
+        
+        chip.dmp(stradd..'v'..x..' = lshift(v'..x..', 1')
         
         local shiftout = gbit(chip.v[x],7)
         pr('setting v'..x..' from '.. chip.v[x]..' to '..(lshift(chip.v[x],1))%256)
@@ -603,8 +645,22 @@ function gchip.init(mode,cmode,extras) -- make a new instance of chip8
       end
         
       
-      for i,v in ipairs(lines) do
-        local op = chip.dump[v]
+      for i,line in ipairs(lines) do
+        local op = chip.dump[line]
+        
+        local lblname = nil
+        
+        for _,lb in pairs(chip.labels) do
+          for k,v in pairs(lb) do
+            if v.pos == op.pos then -- this label already exists!
+              lblname = k
+            end
+          end
+        end
+        
+        if lblname then
+          dstring = dstring .. '::'..lblname..'::\n'
+        end
         dstring = dstring .. addleadings(op.pos) .. '-' .. addleadings(op.pos+op.length) .. ': ' .. op.og .. '\n'
         dstring = dstring .. op.val .. '\n\n'
       end
@@ -620,4 +676,4 @@ function gchip.init(mode,cmode,extras) -- make a new instance of chip8
 end
 
 
-return gchip
+return nacho

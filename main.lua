@@ -47,7 +47,7 @@ function love.load() -- called once at the very start of execution
     end
     return table.concat(t)
   end
-  gchip = require('chip') -- load the chip8 interpreter
+  nacho = require('nacho') -- load the chip8 interpreter
   
   function loadtochip(file,chip) --load a file into chip8's memory
     local contents, size = love.filesystem.read(file)
@@ -61,7 +61,7 @@ function love.load() -- called once at the very start of execution
     return chip
   end
   
-  chip = gchip.init(prgconf.mode,prgconf.custom,prgconf.extras) -- init chip 8
+  chip = nacho.init(prgconf.mode,prgconf.custom,prgconf.extras) -- init chip 8
   chip = loadtochip(prgconf.file,chip) --load file defined in conf.lua
   
   chip.keys = {}
