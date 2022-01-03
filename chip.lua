@@ -11,14 +11,18 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
     common = {
       sw = 64, -- screen width
       sh = 32, -- screen height
+      memsize = 4096, -- how many bytes of memory
       vyshift = true, --set vx to vy in 8xy6 and 8xye
-      vxoffsetjump = false -- false for bnnn, true for bxnn
+      vxoffsetjump = false, -- false for bnnn, true for bxnn
+      indexoverflow = true -- true to set vf to 1 if index goes over 1000
     },
     schip = {
       sw = 128, -- screen width
       sh = 64, -- screen height
+      memsize = 4096, -- how many bytes of memory
       vyshift = false, --set vx to vy in 8xy6 and 8xye
-      vxoffsetjump = true -- false for bnnn, true for bxnn
+      vxoffsetjump = true, -- false for bnnn, true for bxnn
+      indexoverflow = true -- true to set vf to 1 if index goes over 1000
     }
   }
   
@@ -56,7 +60,7 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
   end
   
   chip.mem = {}
-  for i=0,4096 do -- set up memory
+  for i=0,chip.cf.memsize do -- set up memory
     chip.mem[i] = 0
   end
   
@@ -92,7 +96,7 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
   end
   
   function chip.decode(b1,b2)
-    pr('decoding '..th(b1,2)..th(b2,2))
+    pr('decoding '..tohex(b1,2)..tohex(b2,2))
     local c = rshift(band(b1,0xf0),4) -- first nibble, the instruction
     local x = band(b1,0x0f) -- second nibble, for a register
     local y = rshift(band(b2,0xf0),4) -- third nibble, for a register
@@ -332,28 +336,128 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
       if nn == 0x9e then
         --skip if key down
         pr('executing skip if key down')
-        if chip.keys[x].down then
-          pr('key '..x..' is down')
-          pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
-          chip.pc = chip.pc + 2
+        if chip.keys then
+          if chip.keys[x].down then
+            pr('key '..x..' is down')
+            pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
+            chip.pc = chip.pc + 2
+          else
+            pr('key '..x..' is not down')
+            pr('pc remains at '..chip.pc)
+          end
         else
+          print('no key setup found! assuming that no keys are pressed.')
           pr('key '..x..' is not down')
+          pr('pc remains at '..chip.pc)
         end
         
       elseif nn == 0xa1 then
         --skip if key not down
         pr('executing skip if key not down')
-        if chip.keys[x].down then
-          pr('key '..x..' is down')
+        if chip.keys then
+          if chip.keys[x].down then
+            pr('key '..x..' is down')
+            pr('pc remains at '..chip.pc)
+          else
+            pr('key '..x..' is not down')
+            pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
+            chip.pc = chip.pc + 2
+          end
         else
+          print('no key setup found! assuming that no keys are pressed.')
           pr('key '..x..' is not down')
           pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
           chip.pc = chip.pc + 2
         end
       end
+    elseif c == 0xf then
+      if nn == 0x07 then
+        -- set register to delay
+        pr('executing set register to delay')
+        pr('setting v'..x..' from '.. chip.v[x]..' to '.. chip.delay)
+        chip.v[x] = chip.delay
+      elseif nn == 0x15 then
+        -- set delay to register
+        pr('executing set delay to resgister')
+        pr('setting delay from '.. chip.delay ..' to v'..x..', which is '..chip.v[x])
+        chip.delay = chip.v[x]
+      elseif nn == 0x18 then
+        -- set sound timer to register
+        pr('executing set sound timer to resgister')
+        pr('setting sound from '.. chip.sound ..' to v'..x..', which is '..chip.v[x])
+        chip.sound = chip.v[x]
+      elseif nn == 0x1e then
+        -- index add
+        pr('executing index add')
+        pr('adding v'..x..'('..chip.v[x]..') to index ('..chip.index..') ('..chip.index..'+'..chip.v[x]..'='..(chip.index+chip.v[x])%4096 ..')')
+        local newindex = chip.index+chip.v[x]
+        if chip.cf.indexoverflow then
+          pr('setting vf to 1 for overflow')
+          chip.v[0xf] = 1
+        end
+      elseif nn == 0x0a then
+        --wait for key
+        pr('executing wait for key')
+        if chip.keys then
+          local key = nil
+          for k,v in pairs(chip.keys) do
+            if v.pressed then
+              key = k
+            end
+          end
+          if key then 
+            pr('key '..key..' pressed, setting v'..x..' from '..chip.v[x]..' to '..key)
+            chip.v[x] = key
+          else
+            chip.pc = chip.pc - 2
+            pr('key not pressed, pc remains at '..chip.pc)
+          end
+        else
+          print('no key setup found! assuming that no keys are pressed.')
+          chip.pc = chip.pc - 2
+          pr('key not pressed, pc remains at '..chip.pc)
+        end
+      elseif nn == 0x29 then
+        --get font character
+        pr('executing get font character')
+        pr('v'..x..' is ' .. chip.v[x])
+        local newindex = 0x050 + band(chip.v[x],0x0f)*5 --get character last nybble of vx
+        pr('changing index from '..chip.index..' to ' .. newindex ..'(should be character '..tohex(chip.v[x])..')')
+        
+      elseif nn == 0x33 then
+        --decimal split
+        pr('executing decimal split')
+        local num = chip.v[x]
+        pr('v'..x..' is ' .. num)
+        pr('index is ' .. chip.index)
+        
+        pr('changing mem address '..chip.index+0 ..' from '..chip.mem[chip.index+0]..' to ' .. math.floor(num/(10^2))%10)
+        pr('changing mem address '..chip.index+1 ..' from '..chip.mem[chip.index+1]..' to ' .. math.floor(num/(10^1))%10)
+        pr('changing mem address '..chip.index+2 ..' from '..chip.mem[chip.index+2]..' to ' .. math.floor(num/(10^0))%10)
+        chip.mem[chip.index+0] = math.floor(num/(10^2))%10
+        chip.mem[chip.index+1] = math.floor(num/(10^1))%10
+        chip.mem[chip.index+2] = math.floor(num/(10^0))%10
+        
+      end
     else
       print('!!!!!!!!!!!!!!!!!unknown instruction!!!!!!!!!!!!!!!!!!!!')
     end
+  end
+  
+  function chip.timerdec()
+    pr('updating timers')
+    if chip.delay > 0 then
+      chip.delay = chip.delay - 1
+    end
+    if chip.sound > 0 then
+      chip.sound = chip.sound - 1
+      if chip.beep then
+        chip.beep()
+      else
+        print('BEEEEP!')
+      end
+    end
+      
   end
   
   function chip.update()

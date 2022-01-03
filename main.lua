@@ -13,8 +13,8 @@ function love.load() -- called once at the very start of execution
   
   lovebird = require('lovebird/lovebird') -- load lovebird debugging library
   bit = require('bit') -- load LuaJIT's bitwise library
-  tb = bit.tobit -- define shortcuts from bit library
-  th = bit.tohex
+  tobit = bit.tobit -- define shortcuts from bit library
+  tohex = bit.tohex
   rol = bit.rol
   ror = bit.ror
   lshift = bit.lshift
@@ -54,7 +54,7 @@ function love.load() -- called once at the very start of execution
     pr('loading file:')
     for i=1,size do
       local byte = string.byte(string.sub(contents,i,i))
-      pr(th(byte))
+      pr(tohex(byte))
       chip.mem[0x200+(i-1)] = byte
       
     end
@@ -85,6 +85,7 @@ end
 function love.keypressed(key, scancode, isrepeat)
   if prgconf.framebyframe then
     if key == "return" then
+      chip.timerdec()
       chip.update()
     end
   end
@@ -111,6 +112,7 @@ end
 
 function love.update()
   if not prgconf.framebyframe then
+    chip.timerdec()
     chip.update()
   end
   lovebird.update()

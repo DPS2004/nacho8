@@ -17,8 +17,10 @@ function love.conf(t) -- love2d config
     custom = {
       sw = 64, -- screen width
       sh = 32, -- screen height
-      vyshift = true, --set vx to vy in 8xy6 and 8xye
-      vxoffsetjump = false -- false for bnnn, true for bxnn
+      memsize = 4096, -- how many bytes of memory
+      vyshift = true, -- set vx to vy in 8xy6 and 8xye
+      vxoffsetjump = false, -- false for bnnn, true for bxnn
+      indexoverflow = true -- true to set vf to 1 if index goes over 1000
     },
     
     
