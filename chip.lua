@@ -8,23 +8,38 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
   chip.mode = mode or "common" -- define default mode.
   
   chip.modelist = {
+    
+    -- COMMON: the default mode, should work for most programs.
     common = {
       sw = 64, -- screen width
       sh = 32, -- screen height
       memsize = 4096, -- how many bytes of memory
-      vyshift = true, --set vx to vy in 8xy6 and 8xye
+      vyshift = false, --set vx to vy in 8xy6 and 8xye
       vxoffsetjump = false, -- false for bnnn, true for bxnn
       indexoverflow = true, -- true to set vf to 1 if index goes over 1000
-      tempstoreload = true -- dont increment i for fx55 and fx65, use a temporary variable
+      tempstoreload = true -- set false to increment i for fx55 and fx65 instead of using a temporary variable
     },
+    
+    -- COSMAC VIP: The original. Use for super old programs.
+    cosmac = {
+      sw = 64,
+      sh = 32, 
+      memsize = 4096,
+      vyshift = true,
+      vxoffsetjump = false,
+      indexoverflow = false, 
+      tempstoreload = false 
+    },
+    
+    -- SUPER-CHIP: bigger screen res, and some other extra fun stuff.
     schip = {
-      sw = 128, -- screen width
-      sh = 64, -- screen height
-      memsize = 4096, -- how many bytes of memory
-      vyshift = false, --set vx to vy in 8xy6 and 8xye
-      vxoffsetjump = true, -- false for bnnn, true for bxnn
-      indexoverflow = true, -- true to set vf to 1 if index goes over 1000
-      tempstoreload = true -- dont increment i for fx55 and fx65, use a temporary variable
+      sw = 128,
+      sh = 64,
+      memsize = 4096,
+      vyshift = false,
+      vxoffsetjump = true,
+      indexoverflow = true,
+      tempstoreload = true 
     }
   }
   
@@ -236,8 +251,8 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
         end
         
         local shiftout = gbit(chip.v[x],0)
-        pr('setting v'..x..' from '.. chip.v[x]..' to '..rshift(chip.v[x],1))
-        chip.v[x] = rshift(chip.v[x],1)
+        pr('setting v'..x..' from '.. chip.v[x]..' to '..(rshift(chip.v[x],1))%256)
+        chip.v[x] = (rshift(chip.v[x],1))%256
         if shiftout then
           chip.v[0xf] = 1
           pr('shifted out 1')
@@ -267,8 +282,8 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
         end
         
         local shiftout = gbit(chip.v[x],7)
-        pr('setting v'..x..' from '.. chip.v[x]..' to '..lshift(chip.v[x],1))
-        chip.v[x] = lshift(chip.v[x],1)
+        pr('setting v'..x..' from '.. chip.v[x]..' to '..(lshift(chip.v[x],1))%256)
+        chip.v[x] = (lshift(chip.v[x],1))%256
         if shiftout then
           chip.v[0xf] = 1
           pr('shifted out 1')
@@ -458,7 +473,7 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
       elseif nn == 0x65 then
         --read memory
         pr('executing read from memory')
-        pr('reading from mem address '..chip.index ..' to '..chip.index+x..' and storing storing in v0 to v'..x)
+        pr('reading from mem address '..chip.index ..' to '..chip.index+x..' and storing in v0 to v'..x)
         for i=0,x do
           pr('changing v'..i..' from '..chip.v[i]..' to mem '..chip.index+i..', which is '..chip.mem[chip.index+i])
           chip.v[i] = chip.mem[chip.index+i]

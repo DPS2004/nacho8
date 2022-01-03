@@ -18,10 +18,10 @@ function love.conf(t) -- love2d config
       sw = 64, -- screen width
       sh = 32, -- screen height
       memsize = 4096, -- how many bytes of memory
-      vyshift = true, -- set vx to vy in 8xy6 and 8xye
+      vyshift = false, -- set vx to vy in 8xy6 and 8xye
       vxoffsetjump = false, -- false for bnnn, true for bxnn
       indexoverflow = true, -- true to set vf to 1 if index goes over 1000
-      tempstoreload = true -- dont increment i for fx55 and fx65, use a temporary variable
+      tempstoreload = true -- set false to increment i for fx55 and fx65 instead of using a temporary variable
     },
     
     
