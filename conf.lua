@@ -12,7 +12,7 @@ function love.conf(t) -- love2d config
     -- schip
     -- custom
     mode = "common",
-    framebyframe = false,
+    framebyframe = true,
     -- the custom mode gets loaded from this table
     custom = {
       sw = 64, -- screen width

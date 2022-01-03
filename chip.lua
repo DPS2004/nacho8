@@ -230,13 +230,13 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
         end
         
         local shiftout = gbit(chip.v[x],0)
-        pr('setting v'..x..' from '.. chip.v[x]..' to '..rshift(chip.v[x]))
-        chip.v[x] = rshift(chip.v[x])
+        pr('setting v'..x..' from '.. chip.v[x]..' to '..rshift(chip.v[x],1))
+        chip.v[x] = rshift(chip.v[x],1)
         if shiftout then
-          v[0xf] = 1
+          chip.v[0xf] = 1
           pr('shifted out 1')
         else
-          v[0xf] = 1
+          chip.v[0xf] = 1
           pr('shifted out 0')
         end
       elseif n == 7 then
@@ -261,13 +261,13 @@ function gchip.init(mode,cmode) -- make a new instance of chip8
         end
         
         local shiftout = gbit(chip.v[x],7)
-        pr('setting v'..x..' from '.. chip.v[x]..' to '..lshift(chip.v[x]))
-        chip.v[x] = lshift(chip.v[x])
+        pr('setting v'..x..' from '.. chip.v[x]..' to '..lshift(chip.v[x],1))
+        chip.v[x] = lshift(chip.v[x],1)
         if shiftout then
-          v[0xf] = 1
+          chip.v[0xf] = 1
           pr('shifted out 1')
         else
-          v[0xf] = 1
+          chip.v[0xf] = 1
           pr('shifted out 0')
         end
       end
