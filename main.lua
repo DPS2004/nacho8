@@ -84,7 +84,7 @@ end
 
 function love.keypressed(key, scancode, isrepeat)
   for k,v in pairs(prgconf.keys) do
-    chip.keys[k].pressed = false
+    
     if key == v then
       chip.keys[k].pressed = true
       chip.keys[k].down = true
@@ -110,9 +110,7 @@ end
 
 function love.keyreleased(key, scancode, isrepeat)
   for k,v in pairs(prgconf.keys) do
-    chip.keys[k].released = false
     if key == v then
-      chip.keys[k].released = true
       chip.keys[k].down = false
     end
   end
@@ -124,7 +122,12 @@ function love.update()
     chip.timerdec()
     chip.update()
   end
+  for k,v in pairs(prgconf.keys) do
+    chip.keys[k].pressed = false
+    chip.keys[k].released = false
+  end
   lovebird.update()
+  
   
 end
 
