@@ -76,6 +76,7 @@ function love.load() -- called once at the very start of execution
   
   chipcanvas = love.graphics.newCanvas(chip.cf.sw,chip.cf.sh)
   
+  leftoverinstructions = 0
 
   love.window.setMode(chip.cf.sw*prgconf.scale, chip.cf.sh*prgconf.scale, {resizable=true}) -- set the love2d window size to that of the config
 
@@ -121,7 +122,16 @@ end
 function love.update()
   if not prgconf.framebyframe then
     chip.timerdec()
-    chip.update()
+    
+    local bonusframes = 0
+    leftoverinstructions = leftoverinstructions + chip.cf.ips % 60
+    if leftoverinstructions >= 60 then
+      bonusframes = math.floor(leftoverinstructions / 60)
+      leftoverinstructions = leftoverinstructions - (bonusframes * 60)
+    end
+    for i=1,math.floor(chip.cf.ips/60) do
+      chip.update()
+    end
   end
   for k,v in pairs(prgconf.keys) do
     chip.keys[k].pressed = false

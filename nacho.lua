@@ -102,6 +102,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     common = {
       sw = 64, -- screen width
       sh = 32, -- screen height
+      ips = 700, -- number of instructions to execute per second
       memsize = 4096, -- how many bytes of memory
       vyshift = false, --set vx to vy in 8xy6 and 8xye
       vxoffsetjump = false, -- false for bnnn, true for bxnn
@@ -112,11 +113,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     
     -- COSMAC VIP: The original. Use for super old programs.
     cosmac = {
-      sw = 64,
-      sh = 32, 
-      memsize = 4096,
       vyshift = true,
-      vxoffsetjump = false,
       indexoverflow = false, 
       tempstoreload = false,
       waitforrelease = true,
@@ -126,33 +123,28 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     schip = {
       sw = 128,
       sh = 64,
-      memsize = 4096,
-      vyshift = false,
-      vxoffsetjump = true,
-      indexoverflow = true,
-      tempstoreload = true,
-      waitforrelease = false
     },
     
     -- BISQWIT: runs programs made by Bisqwit for his Chip-8 interpreter, found in this video https://www.youtube.com/watch?v=rpLoS7B6T94
     -- note: currently does not ;)
     bisqwit = {
-      sw = 64, 
-      sh = 32, 
-      memsize = 4096,
-      vyshift = false,
-      vxoffsetjump = false,
-      indexoverflow = true,
-      tempstoreload = true,
-      waitforrelease = false
     },
     
   }
+  chip.cf = {}
+  for k,v in pairs(chip.modelist.common) do
+    chip.cf[k] = v
+  end
+ 
   
+  local ncf = nil
   if chip.mode == 'custom' then
-    chip.cf = cmode
+    ncf = cmode
   else
-    chip.cf = chip.modelist[chip.mode]
+    ncf = chip.modelist[chip.mode]
+  end
+  for k,v in pairs(ncf) do
+    chip.cf[k] = v
   end
   
   chip.last = '0000'

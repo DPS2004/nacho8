@@ -4,20 +4,22 @@ function love.conf(t) -- love2d config
   t.console = true
   
   prgconf = { --chip8 config
-    file = "roms/waitforkey.ch8", -- file to load into memory
+    file = "snake.ch8", -- file to load into memory
     scale = 8, -- screen scale
-    chatty = true, 
+    chatty = false, 
     -- valid modes:
     -- common
     -- schip
     -- cosmac
+    -- bisqwit
     -- custom
-    mode = "cosmac",
+    mode = "common",
     framebyframe = false,
     -- the custom mode gets loaded from this table
     custom = {
       sw = 64, -- screen width
       sh = 32, -- screen height
+      ips = 700, -- number of instructions to execute per second
       memsize = 4096, -- how many bytes of memory
       vyshift = false, --set vx to vy in 8xy6 and 8xye
       vxoffsetjump = false, -- false for bnnn, true for bxnn
