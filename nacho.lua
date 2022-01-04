@@ -75,7 +75,14 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       end
       binstr = binstr:gsub('0','.')
       binstr = binstr:gsub('1','#')
+      if chip.sprites[pos] then
+        if chip.sprites[pos].height >= h then
+          return
+        end
+      end
       chip.dmp(binstr,pos,bytestr,h)
+      chip.sprites[pos] = {height=h}
+      
     end
     
     chip.unk = function(pos)
@@ -99,7 +106,8 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       vyshift = false, --set vx to vy in 8xy6 and 8xye
       vxoffsetjump = false, -- false for bnnn, true for bxnn
       indexoverflow = true, -- true to set vf to 1 if index goes over 1000
-      tempstoreload = true -- set false to increment i for fx55 and fx65 instead of using a temporary variable
+      tempstoreload = true, -- set false to increment i for fx55 and fx65 instead of using a temporary variable
+      waitforrelease = false -- wait for the key to be released for fx0a
     },
     
     -- COSMAC VIP: The original. Use for super old programs.
@@ -110,7 +118,8 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       vyshift = true,
       vxoffsetjump = false,
       indexoverflow = false, 
-      tempstoreload = false 
+      tempstoreload = false,
+      waitforrelease = true,
     },
     
     -- SUPER-CHIP: bigger screen res, and some other extra fun stuff.
@@ -121,8 +130,23 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       vyshift = false,
       vxoffsetjump = true,
       indexoverflow = true,
-      tempstoreload = true 
-    }
+      tempstoreload = true,
+      waitforrelease = false
+    },
+    
+    -- BISQWIT: runs programs made by Bisqwit for his Chip-8 interpreter, found in this video https://www.youtube.com/watch?v=rpLoS7B6T94
+    -- note: currently does not ;)
+    bisqwit = {
+      sw = 64, 
+      sh = 32, 
+      memsize = 4096,
+      vyshift = false,
+      vxoffsetjump = false,
+      indexoverflow = true,
+      tempstoreload = true,
+      waitforrelease = false
+    },
+    
   }
   
   if chip.mode == 'custom' then
@@ -253,6 +277,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- skip if equal
       pr('executing skip if equal')
       chip.dmp('if v'..x..' == '..nn..' then jump('..chip.pc+2 ..') --skip next')
+      chip.unk(chip.pc)
       chip.unk(chip.pc+2)
       
       pr('nn is '..nn..', v'..x..' is ' .. chip.v[x])
@@ -266,6 +291,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- skip if not equal
       pr('executing skip if not equal')
       chip.dmp('if v'..x..' != '..nn..' then jump('..chip.pc+2 ..') --skip next')
+      chip.unk(chip.pc)
       chip.unk(chip.pc+2)
       
       pr('nn is '..nn..', v'..x..' is ' .. chip.v[x])
@@ -279,6 +305,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- register skip if equal
       pr('executing register skip if equal')
       chip.dmp('if v'..x..' == v'..y..' then jump('..chip.pc+2 ..') --skip next')
+      chip.unk(chip.pc)
       chip.unk(chip.pc+2)
       
       pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
@@ -439,6 +466,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- register skip if not equal
       pr('executing register skip if not equal')
       chip.dmp('if v'..x..' != v'..y..' then jump('..chip.pc+2 ..') --skip next')
+      chip.unk(chip.pc)
       chip.unk(chip.pc+2)
       
       pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
@@ -513,36 +541,46 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       if nn == 0x9e then
         --skip if key down
         pr('executing skip if key down')
+        chip.dmp('if keydown(v'..x..') then jump('..chip.pc+2 ..') --skip next')
+        chip.unk(chip.pc)
+        chip.unk(chip.pc+2)
+        
+        pr('v'..x..' is'..tohex(chip.v[x],1))
         if chip.keys then
-          if chip.keys[x].down then
-            pr('key '..x..' is down')
+          if chip.keys[chip.v[x]].down then
+            pr('key '..tohex(chip.v[x],1)..' is down')
             pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
             chip.pc = chip.pc + 2
           else
-            pr('key '..x..' is not down')
+            pr('key '..tohex(chip.v[x],1)..' is not down')
             pr('pc remains at '..chip.pc)
           end
         else
           print('no key setup found! assuming that no keys are pressed.')
-          pr('key '..x..' is not down')
+          pr('key '..tohex(chip.v[x],1)..' is not down')
           pr('pc remains at '..chip.pc)
         end
         
       elseif nn == 0xa1 then
         --skip if key not down
         pr('executing skip if key not down')
+        chip.dmp('if not keydown(v'..x..') then jump('..chip.pc+2 ..') --skip next')
+        chip.unk(chip.pc)
+        chip.unk(chip.pc+2)
+        
+        pr('v'..x..' is'..tohex(chip.v[x],1))
         if chip.keys then
-          if chip.keys[x].down then
-            pr('key '..x..' is down')
+          if chip.keys[chip.v[x]].down then
+            pr('key '..tohex(chip.v[x],1)..' is down')
             pr('pc remains at '..chip.pc)
           else
-            pr('key '..x..' is not down')
+            pr('key '..tohex(chip.v[x],1)..' is not down')
             pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
             chip.pc = chip.pc + 2
           end
         else
           print('no key setup found! assuming that no keys are pressed.')
-          pr('key '..x..' is not down')
+          pr('key '..tohex(chip.v[x],1)..' is not down')
           pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
           chip.pc = chip.pc + 2
         end
@@ -578,8 +616,14 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         if chip.keys then
           local key = nil
           for k,v in pairs(chip.keys) do
-            if v.pressed then
-              key = k
+            if chip.cf.waitforrelease then
+              if v.released then
+                key = k
+              end
+            else
+              if v.pressed then
+                key = k
+              end
             end
           end
           if key then 

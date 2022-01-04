@@ -4,7 +4,7 @@ function love.conf(t) -- love2d config
   t.console = true
   
   prgconf = { --chip8 config
-    file = "IBM Logo.ch8", -- file to load into memory
+    file = "BC_test.ch8", -- file to load into memory
     scale = 8, -- screen scale
     chatty = true, 
     -- valid modes:
@@ -12,16 +12,17 @@ function love.conf(t) -- love2d config
     -- schip
     -- custom
     mode = "common",
-    framebyframe = true,
+    framebyframe = false,
     -- the custom mode gets loaded from this table
     custom = {
       sw = 64, -- screen width
       sh = 32, -- screen height
       memsize = 4096, -- how many bytes of memory
-      vyshift = false, -- set vx to vy in 8xy6 and 8xye
+      vyshift = false, --set vx to vy in 8xy6 and 8xye
       vxoffsetjump = false, -- false for bnnn, true for bxnn
       indexoverflow = true, -- true to set vf to 1 if index goes over 1000
-      tempstoreload = true -- set false to increment i for fx55 and fx65 instead of using a temporary variable
+      tempstoreload = true, -- set false to increment i for fx55 and fx65 instead of using a temporary variable
+      waitforrelease = false -- wait for the key to be released for fx0a
     },
     
     
