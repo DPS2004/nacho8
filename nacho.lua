@@ -14,17 +14,24 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
   chip.dmp = function() end
   chip.dmpj = function() end
   chip.unk = function() end
+  chip.spr = function() end
   
   if chip.dumper then
     chip.dump = {}
     chip.labels = {}
     chip.lcount = {}
-    chip.dmp = function(val,pos,length)
+    chip.sprites = {}
+    
+    chip.dmp = function(val,pos,og,length)
+      
       pos = pos or (chip.pc - 2)
+      og = og or tohex(chip.mem[pos],2)..tohex(chip.mem[pos+1],2)
+      
+      
       length = length or 2
       
       
-      chip.dump[pos] = {length=length - 1,val=val,og=chip.last,pos=pos}
+      chip.dump[pos] = {length=length - 1,val=val,og=og,pos=pos}
     end
     chip.dmpj = function(txt,val,pos,pos2)
       if not chip.labels[val] then
@@ -58,6 +65,19 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       txt = txt:gsub('#LBL#',lblname)
       chip.dmp(txt,pos2)
     end
+    chip.spr = function(pos,h)
+      local binstr = ''
+      local bytestr = ''
+      for dyi = 0,h-1 do 
+        local sprbyte = chip.mem[chip.index+dyi] -- get byte from memory
+        binstr = binstr .. binarystring(sprbyte,true) .. '\n'
+        bytestr = bytestr .. tohex(sprbyte,2)
+      end
+      binstr = binstr:gsub('0','.')
+      binstr = binstr:gsub('1','#')
+      chip.dmp(binstr,pos,bytestr,h)
+    end
+    
     chip.unk = function(pos)
       if not chip.dump[pos] then -- don't overwrite a known with an unknown
         chip.dmp('unknown',pos)
@@ -464,6 +484,9 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     elseif c == 0xd then
       -- display to screen (oh god)
       pr('executing draw at '..chip.v[x]..','..chip.v[y])
+      chip.dmpj('draw(v'..x..', v'..y..', '..n..')','spr',chip.index)
+      chip.spr(chip.index,n)
+      
       local dx = chip.v[x] % chip.cf.sw
       local dy = chip.v[y] % chip.cf.sh
       chip.v[0xf] = 0 -- set vf to 0

@@ -6,13 +6,13 @@ function love.conf(t) -- love2d config
   prgconf = { --chip8 config
     file = "IBM Logo.ch8", -- file to load into memory
     scale = 8, -- screen scale
-    chatty = false, 
+    chatty = true, 
     -- valid modes:
     -- common
     -- schip
     -- custom
     mode = "common",
-    framebyframe = false,
+    framebyframe = true,
     -- the custom mode gets loaded from this table
     custom = {
       sw = 64, -- screen width
@@ -26,7 +26,7 @@ function love.conf(t) -- love2d config
     
     
     hotkeys = {
-      frameadvance = 'enter',
+      frameadvance = 'return',
       savedump = '5'
     },
     extras = {-- misc things to pass directly to chip 8, mostly debug
