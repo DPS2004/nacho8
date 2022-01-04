@@ -589,30 +589,44 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       if nn == 0x07 then
         -- set register to delay
         pr('executing set register to delay')
+        chip.dmp('v'..x..' = delay')
+
         pr('setting v'..x..' from '.. chip.v[x]..' to '.. chip.delay)
         chip.v[x] = chip.delay
       elseif nn == 0x15 then
         -- set delay to register
         pr('executing set delay to resgister')
+        chip.dmp('delay = v'..x)
+        
         pr('setting delay from '.. chip.delay ..' to v'..x..', which is '..chip.v[x])
         chip.delay = chip.v[x]
       elseif nn == 0x18 then
         -- set sound timer to register
         pr('executing set sound timer to resgister')
+        chip.dmp('sound = v'..x)
+        
         pr('setting sound from '.. chip.sound ..' to v'..x..', which is '..chip.v[x])
         chip.sound = chip.v[x]
       elseif nn == 0x1e then
         -- index add
         pr('executing index add')
+        chip.dmp('index += v'..x)
+        
         pr('adding v'..x..'('..chip.v[x]..') to index ('..chip.index..') ('..chip.index..'+'..chip.v[x]..'='..(chip.index+chip.v[x])%4096 ..')')
         local newindex = chip.index+chip.v[x]
         if chip.cf.indexoverflow then
-          pr('setting vf to 1 for overflow')
-          chip.v[0xf] = 1
+          if newindex >= 4096 then
+            newindex = newindex % 4096
+            pr('setting vf to 1 for overflow')
+            chip.v[0xf] = 1
+          end
         end
+        chip.index = newindex
       elseif nn == 0x0a then
         --wait for key
         pr('executing wait for key')
+        chip.dmp('v'..x ..' = waitforkey')
+        
         if chip.keys then
           local key = nil
           for k,v in pairs(chip.keys) do
@@ -641,7 +655,9 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       elseif nn == 0x29 then
         --get font character
         pr('executing get font character')
-        pr('v'..x..' is ' .. chip.v[x])
+        chip.dmp('index = font(v'..x..')')
+        
+        pr('v'..x..' is ' .. tohex(chip.v[x]))
         local newindex = 0x050 + band(chip.v[x],0x0f)*5 --get character last nybble of vx
         pr('changing index from '..chip.index..' to ' .. newindex ..'(should be character '..tohex(chip.v[x])..')')
         
