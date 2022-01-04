@@ -4,7 +4,7 @@ function love.conf(t) -- love2d config
   t.console = true
   
   prgconf = { --chip8 config
-    file = "BC_test.ch8", -- file to load into memory
+    file = "roms/waitforkey.ch8", -- file to load into memory
     scale = 8, -- screen scale
     chatty = true, 
     -- valid modes:

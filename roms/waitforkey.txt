@@ -1,0 +1,39 @@
+-- save new key to v2
+if v4 == 1 then skip
+jump to :v4setup
+jump to :erase
+:v4setup
+v4 = 1
+jump to jump 3
+
+:erase
+erase the old key sprite
+
+:draw new
+fjshiduvfhnsdf
+
+skip if v2 does equal 1
+v0 = 0b
+v1 = 0b
+
+32 01 12 C4 60 0B 61 0B 13 54
+32 02 12 CE 60 10 61 0B 13 54 
+32 03 12 D8 60 15 61 0B 13 54 
+32 0C 12 E2 60 1A 61 0B 13 54
+
+32 04 12 EC 60 0B 61 10 13 54 
+32 05 12 F6 60 10 61 10 13 54 
+32 06 13 00 60 15 61 10 13 54 
+32 0D 13 0A 60 1A 61 10 13 54
+
+32 07 13 14 60 0B 61 15 13 54 
+32 08 13 1E 60 10 61 15 13 54 
+32 09 13 28 60 15 61 15 13 54 
+32 0E 13 32 60 1A 61 15 13 54
+
+32 0A 13 3C 60 0B 61 1A 13 54 
+32 00 13 46 60 10 61 1A 13 54 
+32 0B 13 50 60 15 61 1A 13 54
+60 1A 61 1A
+
+

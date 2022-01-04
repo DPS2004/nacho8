@@ -99,7 +99,7 @@ function love.keypressed(key, scancode, isrepeat)
   end
   
   if key == prgconf.hotkeys.savedump then
-    local file = io.open(prgconf.file ..'.dump','w')
+    local file = io.open(prgconf.file ..'d','w')
     local dump = chip.savedump()
     file:write(dump)
     print(dump)
