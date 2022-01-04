@@ -10,8 +10,9 @@ function love.conf(t) -- love2d config
     -- valid modes:
     -- common
     -- schip
+    -- cosmac
     -- custom
-    mode = "common",
+    mode = "cosmac",
     framebyframe = false,
     -- the custom mode gets loaded from this table
     custom = {

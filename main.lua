@@ -112,6 +112,7 @@ function love.keyreleased(key, scancode, isrepeat)
   for k,v in pairs(prgconf.keys) do
     if key == v then
       chip.keys[k].down = false
+      chip.keys[k].released = true
     end
   end
 end
