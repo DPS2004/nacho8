@@ -92,6 +92,14 @@ jump(dgloop)
 0618-0619: 00ee
 return()
 
+0624: 
+-- THE WOODSMAN text sprite bit data
+
+
+704:
+-- THE WOODSMAN text sprite position data
+
+
 ::bigdraw::
 0736-0737: 6400
 v4 = 0
@@ -163,6 +171,90 @@ return
 
 
 
+--woodsman sprites
+0784: 6 tall left sprite
+0790: 4 tall left anim bitmask
+0794: 6 tall right sprite
+0800: 4 tall right anim bitmask
+
+
+::getlr(v0)::
+
+0804-0805: 6100
+v1 = 0
+
+
+
+0806-0807: 4003
+if v0 ~= 3 then skip next
+
+0808-0809: 1348
+jump(isonright)
+
+0810-0811: 400c
+if v0 ~= c then skip next
+
+0812-0813: 1348
+jump(isonright)
+
+
+
+0814-0815: 4006
+if v0 ~= 6 then skip next
+
+0816-0817: 1348
+jump(isonright)
+
+0818-0819: 400d
+if v0 ~= d then skip next
+
+0820-0821: 1348
+jump(isonright)
+
+
+
+0822-0823: 4009
+if v0 ~= 9 then skip next
+
+0824-0825: 1348
+jump(isonright)
+
+0826-0827: 400e
+if v0 ~= e then skip next
+
+0828-0829: 1348
+jump(isonright)
+
+
+
+0830-0831: 400b
+if v0 ~= b then skip next
+
+0832-0833: 1348
+jump(isonright)
+
+0834-0835: 400f
+if v0 ~= f then skip next
+
+0836-0837: 1348
+jump(isonright)
+
+
+0838-0839: 00ee
+return
+
+::isonright::
+0840-0841: 6101
+v1 = 1
+
+0842-0843: 00ee
+return
+
+
+
+
+
+
 
 
 ::init::
@@ -171,3 +263,13 @@ goto(drawground)
 
 1026-1027: 2304
 goto(drawtext)
+
+::mainloop::
+1028-1029: f00a
+v0 = waitforkey
+
+1030-1031: 2324
+goto(getlr)
+
+1032-1033: 1404
+jump(mainloop)
