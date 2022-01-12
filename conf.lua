@@ -38,6 +38,7 @@ function love.conf(t) -- love2d config
     
     hotkeys = {
       frameadvance = 'return',
+      fastforward = '\\',
       savedump = '5'
     },
     extras = {-- misc things to pass directly to chip 8, mostly debug

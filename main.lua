@@ -149,7 +149,19 @@ function love.update()
         chip.update()
       end
     end
+  else
+    if love.keyboard.isDown(prgconf.hotkeys.fastforward) then
+      if chip.cf.dotimedupdate then
+        local ops = chip.timedupdate()
+        pr('ops',ops)
+        pr('ums',chip.microseconds)
+      else
+        chip.timerdec()
+        chip.update()
+      end
+    end
   end
+  
   for k,v in pairs(prgconf.keys) do
     chip.keys[k].pressed = false
     chip.keys[k].released = false
