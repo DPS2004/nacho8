@@ -2,6 +2,21 @@
 
 local nacho = {}
 
+if not pr then
+  pr = function() end
+end
+-- general utility functions go up here i guess?
+function nacho.addleadings(x,n,f)
+  n = n or 4
+  f = f or '0'
+  local r = tostring(x)
+  local l = n-#r
+  for i=1,l do
+    r = f..r
+  end
+  return r
+end
+
 function nacho.init(mode,cmode,extras) -- make a new instance of chip8
   local chip = {}
   
@@ -108,7 +123,9 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       vxoffsetjump = false, -- false for bnnn, true for bxnn
       indexoverflow = true, -- true to set vf to 1 if index goes over 1000
       tempstoreload = true, -- set false to increment i for fx55 and fx65 instead of using a temporary variable
-      waitforrelease = false -- wait for the key to be released for fx0a
+      waitforrelease = false, -- wait for the key to be released for fx0a
+      dotimedupdate = false, -- set to true to emulate the vip cosmac's timing. overides ips.
+      pagesize = 256, -- only used if timedupdate = true, this is just a guess!!
     },
     
     -- COSMAC VIP: The original. Use for super old programs.
@@ -117,6 +134,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       indexoverflow = false, 
       tempstoreload = false,
       waitforrelease = true,
+      dotimedupdate = true,
     },
     
     -- SUPER-CHIP: bigger screen res, and some other extra fun stuff.
@@ -164,6 +182,32 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
   
   function chip.peek() -- look at last item in stack
     return chip.stack[#chip.stack]
+  end
+  
+  chip.microseconds = 0 --how many microseconds have elapsed
+  
+  chip.maxms = math.floor(1000000/60) --assuming 60fps for now
+  
+  function chip.ms(x,v,a,b)
+    chip.microseconds = chip.microseconds + x
+    
+    if v then
+      if b then
+        if math.floor(a/chip.cf.pagesize) == math.floor(b/chip.cf.pagesize) then
+          chip.microseconds = chip.microseconds - v
+        else
+          chip.microseconds = chip.microseconds + v
+        end
+      elseif a ~= nil then
+        if a then
+          chip.microseconds = chip.microseconds - v
+        else
+          chip.microseconds = chip.microseconds + v
+        end
+      else
+        chip.microseconds = chip.microseconds + v
+      end
+    end
   end
   
   chip.screenupdated = true -- has a function that modifies the screen been called?
@@ -231,6 +275,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       if nnn == 0x0e0 then
         -- clear screen
         chip.dmp('clearscreen')
+        chip.ms(109)
         
         pr('executing clear screen')
         for dx=0,#chip.display do
@@ -239,10 +284,12 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
           end
         end
         chip.screenupdated = true
+        
       elseif nnn == 0x0ee then
         --return from subroutine
         pr('executing return from subroutine')
         chip.dmp('return')
+        chip.ms(105,5,chip.pc,chip.peek())
         
         pr('pc has gone from '..chip.pc ..' to '..chip.peek())
         chip.pc = chip.pop()
@@ -253,6 +300,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- jump
       pr('executing jump')
       chip.dmpj('jump(#LBL#)','jump',nnn)
+      chip.ms(105,5,chip.pc,nnn)
       
       pr('pc has gone from '..chip.pc.. ' to '..nnn)
       chip.pc = nnn
@@ -261,6 +309,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- go to subroutine
       pr('executing go to subroutine')
       chip.dmpj('goto(#LBL#)','goto',nnn)
+      chip.ms(105,5,chip.pc,nnn)
       
       pr('pc has gone from '..chip.pc.. ' to '..nnn)
       chip.push(chip.pc)
@@ -271,6 +320,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       chip.dmp('if v'..x..' == '..nn..' then jump('..chip.pc+2 ..') --skip next')
       chip.unk(chip.pc)
       chip.unk(chip.pc+2)
+      chip.ms(55,9,nn == chip.v[x])
       
       pr('nn is '..nn..', v'..x..' is ' .. chip.v[x])
       if nn == chip.v[x] then
@@ -285,6 +335,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       chip.dmp('if v'..x..' != '..nn..' then jump('..chip.pc+2 ..') --skip next')
       chip.unk(chip.pc)
       chip.unk(chip.pc+2)
+      chip.ms(55,9,nn ~= chip.v[x])
       
       pr('nn is '..nn..', v'..x..' is ' .. chip.v[x])
       if nn ~= chip.v[x] then
@@ -299,6 +350,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       chip.dmp('if v'..x..' == v'..y..' then jump('..chip.pc+2 ..') --skip next')
       chip.unk(chip.pc)
       chip.unk(chip.pc+2)
+      chip.ms(73,9,chip.v[x] == chip.v[y])
       
       pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
       if chip.v[x] == chip.v[y] then
@@ -311,6 +363,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- set
       pr('executing set')
       chip.dmp('v'..x..' = '..nn)
+      chip.ms(27)
       
       pr('v'..x..' has gone from '..chip.v[x] .. ' to '.. nn)
       chip.v[x] = nn
@@ -318,11 +371,12 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- add
       pr('executing add')
       chip.dmp('v'..x..' += '..nn)
-      
+      chip.ms(45) 
       
       pr('v'..x..' has gone from '..chip.v[x] .. ' to '.. (chip.v[x] + nn) % 256)
       chip.v[x] = (chip.v[x] + nn) % 256
     elseif c == 8 then
+      chip.ms(200)
       if n == 0 then
         -- register set
         pr('executing register set')
@@ -460,6 +514,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       chip.dmp('if v'..x..' != v'..y..' then jump('..chip.pc+2 ..') --skip next')
       chip.unk(chip.pc)
       chip.unk(chip.pc+2)
+      chip.ms(73,9,chip.v[x] ~= chip.v[y])
       
       pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
       if chip.v[x] ~= chip.v[y] then
@@ -473,6 +528,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       pr('executing set index')
       chip.dmp('index = '..nnn)
       chip.unk(nnn)
+      chip.ms(55)
       
       pr('index has gone from '..chip.index .. ' to '.. nnn)
       chip.index = nnn
@@ -483,12 +539,15 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       if not vxoffsetjump then
         chip.dmp('jump('..nnn..' + v0')
         chip.unk(nnn + chip.v[0])
+        chip.ms(73,9,chip.pc,nnn+chip.v[0])
         
         pr('pc has gone from '..chip.pc.. ' to '..nnn .. ' + v0, ('..nnn..'+'..chip.v[0]..'=' .. nnn + chip.v[0] .. ')')
         chip.pc = nnn + chip.v[0]
       else
         chip.dmp('jump({'..x..'}'..y..n..' + v{'..x..'} -- {'..x..'} must be the same number')
         chip.unk(nnn + chip.v[x])
+        chip.ms(73,9,chip.pc,nnn+chip.v[x])
+        
         
         pr('pc has gone from '..chip.pc.. ' to '..nnn .. ' + v'..x..', ('..nnn..'+'..chip.v[x]..'=' .. nnn + chip.v[x] .. ')')
         chip.pc = nnn + chip.v[x]
@@ -497,6 +556,8 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- random number
       pr('executing random number')
       chip.dmp('v'..x..' = band(random(0,255), '..nn..')')
+      chip.ms(164)
+      
       local rn = band(math.random(0,255),nn)
       pr('setting v'..x..' from '.. chip.v[x]..' to '.. rn)
       chip.v[x] = rn
@@ -506,6 +567,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       pr('executing draw at '..chip.v[x]..','..chip.v[y])
       chip.dmpj('draw(v'..x..', v'..y..', '..n..')','spr',chip.index)
       chip.spr(chip.index,n)
+      chip.ms(22734,(n-8)*662) --this is my best guess, probably not be accurate
       
       local dx = chip.v[x] % chip.cf.sw
       local dy = chip.v[y] % chip.cf.sh
@@ -537,20 +599,27 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         chip.unk(chip.pc)
         chip.unk(chip.pc+2)
         
+        
         pr('v'..x..' is'..tohex(chip.v[x],1))
         if chip.keys then
           if chip.keys[chip.v[x]].down then
             pr('key '..tohex(chip.v[x],1)..' is down')
             pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
             chip.pc = chip.pc + 2
+            
+            chip.ms(73,-9)
           else
             pr('key '..tohex(chip.v[x],1)..' is not down')
             pr('pc remains at '..chip.pc)
+            
+            chip.ms(73,9)
           end
         else
           print('no key setup found! assuming that no keys are pressed.')
           pr('key '..tohex(chip.v[x],1)..' is not down')
           pr('pc remains at '..chip.pc)
+          
+          chip.ms(73,9)
         end
         
       elseif nn == 0xa1 then
@@ -565,16 +634,22 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
           if chip.keys[chip.v[x]].down then
             pr('key '..tohex(chip.v[x],1)..' is down')
             pr('pc remains at '..chip.pc)
+            
+            chip.ms(73,-9)
           else
             pr('key '..tohex(chip.v[x],1)..' is not down')
             pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
             chip.pc = chip.pc + 2
+            
+            chip.ms(73,9)
           end
         else
           print('no key setup found! assuming that no keys are pressed.')
           pr('key '..tohex(chip.v[x],1)..' is not down')
           pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
           chip.pc = chip.pc + 2
+          
+          chip.ms(73,9)
         end
       end
     elseif c == 0xf then
@@ -582,42 +657,15 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         -- set register to delay
         pr('executing set register to delay')
         chip.dmp('v'..x..' = delay')
+        chip.ms(45)
 
         pr('setting v'..x..' from '.. chip.v[x]..' to '.. chip.delay)
         chip.v[x] = chip.delay
-      elseif nn == 0x15 then
-        -- set delay to register
-        pr('executing set delay to resgister')
-        chip.dmp('delay = v'..x)
-        
-        pr('setting delay from '.. chip.delay ..' to v'..x..', which is '..chip.v[x])
-        chip.delay = chip.v[x]
-      elseif nn == 0x18 then
-        -- set sound timer to register
-        pr('executing set sound timer to resgister')
-        chip.dmp('sound = v'..x)
-        
-        pr('setting sound from '.. chip.sound ..' to v'..x..', which is '..chip.v[x])
-        chip.sound = chip.v[x]
-      elseif nn == 0x1e then
-        -- index add
-        pr('executing index add')
-        chip.dmp('index += v'..x)
-        
-        pr('adding v'..x..'('..chip.v[x]..') to index ('..chip.index..') ('..chip.index..'+'..chip.v[x]..'='..(chip.index+chip.v[x])%4096 ..')')
-        local newindex = chip.index+chip.v[x]
-        if chip.cf.indexoverflow then
-          if newindex >= 4096 then
-            newindex = newindex % 4096
-            pr('setting vf to 1 for overflow')
-            chip.v[0xf] = 1
-          end
-        end
-        chip.index = newindex
       elseif nn == 0x0a then
         --wait for key
         pr('executing wait for key')
         chip.dmp('v'..x ..' = waitforkey')
+        
         
         if chip.keys then
           local key = nil
@@ -644,10 +692,50 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
           chip.pc = chip.pc - 2
           pr('key not pressed, pc remains at '..chip.pc)
         end
+        
+        if chip.cf.dotimedupdate then
+          chip.microseconds = -1
+        end
+        
+      elseif nn == 0x15 then
+        -- set delay to register
+        pr('executing set delay to resgister')
+        chip.dmp('delay = v'..x)
+        chip.ms(45)
+        
+        pr('setting delay from '.. chip.delay ..' to v'..x..', which is '..chip.v[x])
+        chip.delay = chip.v[x]
+      elseif nn == 0x18 then
+        -- set sound timer to register
+        pr('executing set sound timer to resgister')
+        chip.dmp('sound = v'..x)
+        chip.ms(45)
+        
+        pr('setting sound from '.. chip.sound ..' to v'..x..', which is '..chip.v[x])
+        chip.sound = chip.v[x]
+      elseif nn == 0x1e then
+        -- index add
+        pr('executing index add')
+        chip.dmp('index += v'..x)
+        
+        pr('adding v'..x..'('..chip.v[x]..') to index ('..chip.index..') ('..chip.index..'+'..chip.v[x]..'='..(chip.index+chip.v[x])%4096 ..')')
+        local newindex = chip.index+chip.v[x]
+        if chip.cf.indexoverflow then
+          if newindex >= 4096 then
+            newindex = newindex % 4096
+            pr('setting vf to 1 for overflow')
+            chip.v[0xf] = 1
+          end
+        end
+        chip.ms(86,14,chip.index,newindex)
+        
+        chip.index = newindex
+      
       elseif nn == 0x29 then
         --get font character
         pr('executing get font character')
         chip.dmp('index = font(v'..x..')')
+        chip.ms(91)
         
         pr('v'..x..' is ' .. tohex(chip.v[x]))
         local newindex = 0x050 + band(chip.v[x],0x0f)*5 --get character last nybble of vx
@@ -656,6 +744,10 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       elseif nn == 0x33 then
         --decimal split
         pr('executing decimal split')
+        
+        chip.ms(364+(math.floor(num/(10^2))%10+math.floor(num/(10^1))%10+math.floor(num)%10)*73)
+        -- the math doesn't check out *exactly*, but its whats on the page.
+        
         local num = chip.v[x]
         pr('v'..x..' is ' .. num)
         pr('index is ' .. chip.index)
@@ -671,6 +763,10 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       elseif nn == 0x55 then
         --store memory
         pr('executing store to memory')
+        chip.dmp('for i=0,'..x..' do mem[index + i] = vi')
+        
+        chip.ms(64*(x+1))
+        
         pr('storing from v0 to v'..x..', starting at mem address '..chip.index)
         for i=0,x do
           pr('changing memory '..chip.index+i ..' from '..chip.mem[chip.index+i]..' to v'..i..', which is '..chip.v[i])
@@ -685,6 +781,10 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       elseif nn == 0x65 then
         --read memory
         pr('executing read from memory')
+        chip.dmp('for i=0,'..x..' do vi = mem[index + i]')
+        
+        chip.ms(64*(x+1))
+        
         pr('reading from mem address '..chip.index ..' to '..chip.index+x..' and storing in v0 to v'..x)
         for i=0,x do
           pr('changing v'..i..' from '..chip.v[i]..' to mem '..chip.index+i..', which is '..chip.mem[chip.index+i])
@@ -726,6 +826,17 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     chip.execute(c,x,y,n,nn,nnn) -- interpret the decoded bytes
   end
   
+  function chip.timedupdate()
+    -- microsecond timing values from
+    chip.microseconds = 0 
+    local opsrun = 0
+    while (chip.microseconds < chip.maxms) and (chip.microseconds >= 0) do
+      chip.update()
+      opsrun = opsrun + 1
+    end
+    return opsrun
+  end
+  
   function chip.savedump()
     if chip.dumper then
       local dstring = ''
@@ -736,14 +847,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       table.sort(lines)
       local sorted = {}
       
-      local function addleadings(x)
-        local r = tostring(x)
-        local l = 4-#r
-        for i=1,l do
-          r = '0'..r
-        end
-        return r
-      end
+      
         
       
       for i,line in ipairs(lines) do
@@ -762,7 +866,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         if lblname then
           dstring = dstring .. '::'..lblname..'::\n'
         end
-        dstring = dstring .. addleadings(op.pos) .. '-' .. addleadings(op.pos+op.length) .. ': ' .. op.og .. '\n'
+        dstring = dstring .. nacho.addleadings(op.pos) .. '-' .. nacho.addleadings(op.pos+op.length) .. ': ' .. op.og .. '\n'
         dstring = dstring .. op.val .. '\n\n'
       end
       return dstring

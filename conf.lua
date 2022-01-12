@@ -4,9 +4,14 @@ function love.conf(t) -- love2d config
   t.console = true
   
   prgconf = { --chip8 config
-    file = "snake.ch8", -- file to load into memory
+    file = "roms/woodsman.ch8", -- file to load into memory
     scale = 8, -- screen scale
-    chatty = false, 
+    chatty = true, 
+    choutput = {-- what things do we want to hear about from chatty?
+      all = true, 
+      ops = true,
+      ums = true,
+    },
     -- valid modes:
     -- common
     -- schip
@@ -14,7 +19,7 @@ function love.conf(t) -- love2d config
     -- bisqwit
     -- custom
     mode = "common",
-    framebyframe = false,
+    framebyframe = true,
     -- the custom mode gets loaded from this table
     custom = {
       sw = 64, -- screen width
@@ -25,7 +30,9 @@ function love.conf(t) -- love2d config
       vxoffsetjump = false, -- false for bnnn, true for bxnn
       indexoverflow = true, -- true to set vf to 1 if index goes over 1000
       tempstoreload = true, -- set false to increment i for fx55 and fx65 instead of using a temporary variable
-      waitforrelease = false -- wait for the key to be released for fx0a
+      waitforrelease = false, -- wait for the key to be released for fx0a
+      timedupdate = false, -- set to true to emulate the vip cosmac's timing. overides ips.
+      pagesize = 256, -- only used if timedupdate = true, this is just a guess!!
     },
     
     

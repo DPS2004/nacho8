@@ -5,9 +5,15 @@
 
 function love.load() -- called once at the very start of execution
   
-  function pr(x) 
+  function pr(id,x)
     if prgconf.chatty then -- helper function to print only if its asked for
-      print(x)
+      if not x then
+        x = id
+        id = 'all'
+      end
+      if prgconf.choutput[id] or prgconf.choutput.all then
+        print(id..': '..x)
+      end
     end
   end
   
@@ -94,8 +100,14 @@ function love.keypressed(key, scancode, isrepeat)
   
   if prgconf.framebyframe then
     if key == prgconf.hotkeys.frameadvance then
-      chip.timerdec()
-      chip.update()
+      if chip.cf.dotimedupdate then
+        local ops = chip.timedupdate()
+        pr('ops',ops)
+        pr('ums',chip.microseconds)
+      else
+        chip.timerdec()
+        chip.update()
+      end
     end
   end
   
@@ -122,15 +134,20 @@ end
 function love.update()
   if not prgconf.framebyframe then
     chip.timerdec()
-    
-    local bonusframes = 0
-    leftoverinstructions = leftoverinstructions + chip.cf.ips % 60
-    if leftoverinstructions >= 60 then
-      bonusframes = math.floor(leftoverinstructions / 60)
-      leftoverinstructions = leftoverinstructions - (bonusframes * 60)
-    end
-    for i=1,math.floor(chip.cf.ips/60) do
-      chip.update()
+    if chip.cf.dotimedupdate then
+      local ops = chip.timedupdate()
+      pr('ops',ops)
+      pr('ums',chip.microseconds)
+    else
+      local bonusframes = 0
+      leftoverinstructions = leftoverinstructions + chip.cf.ips % 60
+      if leftoverinstructions >= 60 then
+        bonusframes = math.floor(leftoverinstructions / 60)
+        leftoverinstructions = leftoverinstructions - (bonusframes * 60)
+      end
+      for i=1,math.floor(chip.cf.ips/60) do
+        chip.update()
+      end
     end
   end
   for k,v in pairs(prgconf.keys) do
