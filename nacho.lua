@@ -463,7 +463,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
           chip.v[0xf] = 1
           pr('shifted out 1')
         else
-          chip.v[0xf] = 1
+          chip.v[0xf] = 0
           pr('shifted out 0')
         end
       elseif n == 7 then
@@ -504,7 +504,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
           chip.v[0xf] = 1
           pr('shifted out 1')
         else
-          chip.v[0xf] = 1
+          chip.v[0xf] = 0
           pr('shifted out 0')
         end
       end
@@ -579,11 +579,11 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
           local val = gbit(sprbyte,7-dxi) -- get value of bit
           if dx+dxi < chip.cf.sw and dy+dyi < chip.cf.sh then --make sure we are in bounds
             if val  then
-              if chip.display[dx+dxi][dy+dyi] then 
+              if chip.display[dx+dxi][dy+dyi+1] then 
                 chip.v[0xf] = 1
-                chip.display[dx+dxi][dy+dyi] = false -- turn off pixel
+                chip.display[dx+dxi][dy+dyi+1] = false -- turn off pixel
               else
-                chip.display[dx+dxi][dy+dyi] = true -- turn on pixel
+                chip.display[dx+dxi][dy+dyi+1] = true -- turn on pixel
               end
             end
           end

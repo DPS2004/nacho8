@@ -147,7 +147,7 @@ draw(v0,v1,00)
 0764-0765: 8454
 v4 += v5
 
-0766-0767: 5464
+0766-0767: 5460
 if v4 == v6 then jump(0770) --skip next
 
 0768-0769: 12e4
@@ -333,6 +333,123 @@ goto(drawguy)
 0892-0893: 00ee
 return
 
+0894:
+-- tree stump
+
+0897:
+--logs
+
+0905:
+-- left arrow
+0907:
+-- right arrow
+
+::drawarrows::
+0912-0913: 6019
+v0 = 25
+
+0914-0915: 6119
+v1 = 25
+
+0916-0917: a389
+index = 0905
+
+0918-0919: d015
+draw(v0,v1,5)
+
+0920-0921: a38b
+index = 0907
+
+0922-0923: 6022
+v1 = 34
+
+0924-0925: d015
+draw(v0,v1,5)
+
+0926-0927: 00ee
+return
+
+0928:
+-- left branch
+0932:
+-- right branch
+
+::initbranches::
+0936-0937: c91e
+v9 = band(random(0,255), 0011110)
+
+0938-0939: 7901
+v9 += 1
+
+0940-0941: 8983
+v9 = bxor(v9,v8)
+
+0942-0943: 00ee
+return
+
+
+
+::drawbranches::
+0944-0945: 8290
+v2 = v9
+
+0946-0947: 822e
+v2 = lshift(v2)
+
+0948-0949: 822e
+v2 = lshift(v2)
+
+0950-0951: 6100
+v1 = 0
+
+::branchloopstart::
+
+0952-0953: 6016
+v0 = 22
+
+0954-0955: a3a0
+index = 0928
+
+0956-0957: 822e
+v2 = lshift(v2)
+
+0958-0959: 85f0
+v5 = vf
+
+0960-0961: 3500
+if v5 == 0 then skip next
+
+0962-0963: 6021
+v0 = 33
+
+0964-0965: 3500
+if v5 == 0 then skip next
+
+0966-0967: a3a4
+index = 0932
+
+0968-0969: d014
+draw(v0,v1,4)
+
+0970-0971: 3100
+if v1 == 0 then skip next
+
+0972-0973: 7101
+v1 += 1
+
+0974-0975: 7103
+v1 += 3
+
+0976-0977: 3113
+if v1 == 19 then skip next
+
+0978-0979: 13b8
+jump(branchloopstart)
+
+0980-0981: 00ee
+return
+
+
 
 ::init::
 
@@ -342,39 +459,74 @@ v8 = 2
 1026-1027: 225a
 goto(drawground)
 
+::titlescreen::
 1028-1029: 2304
 goto(drawtext)
 
-::mainloop::
-1030-1031: f00a
+1030-1031: 2390
+goto(drawarrows)
+
+
+1032-1033: f00a
 v0 = waitforkey
 
-1032-1033: 2324
+::startgame::
+1034-1035: 2324
 goto(getlr)
 
-1034-1035: 8010
+1036-1037: 8010
 v0 = v1
 
-1036-1037: 6100
+1038-1039: 6100
 v1 = 0
-
-1038-1039: 5084
-if v0 == v8 then skip next
 
 1040-1041: 236e
 goto(moveguy)
 
-1042-1043: 6101
+1042-1043: 23a8
+goto(initbranches)
+
+1044-1045: 2304
+goto(drawtext)
+
+1046-1047: 2390
+goto(drawarrows)
+
+
+1048-1049: 23b0
+goto(drawbranches)
+
+
+::mainloop::
+1050-1051: f00a
+v0 = waitforkey
+
+1052-1053: 2324
+goto(getlr)
+
+1054-1055: 8010
+v0 = v1
+
+1056-1057: 6100
+v1 = 0
+
+1058-1059: 5080
+if v0 == v8 then skip next
+
+1060-1061: 236e
+goto(moveguy)
+
+1062-1063: 6101
 v1 = 1
 
-1044-1045: 234c
+1064-1065: 234c
 goto(drawguy)
 
 
-1046-1047: 234c
+1066-1067: 234c
 goto(drawguy)
 
 
 
-1048-1049: 1406
+1068-1069: 141a
 jump(mainloop)

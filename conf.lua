@@ -19,7 +19,7 @@ function love.conf(t) -- love2d config
     -- bisqwit
     -- custom
     mode = "common",
-    framebyframe = true,
+    framebyframe = false,
     -- the custom mode gets loaded from this table
     custom = {
       sw = 64, -- screen width
