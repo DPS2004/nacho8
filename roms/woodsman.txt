@@ -567,7 +567,7 @@ goto(drawtext)
 goto(drawarrows)
 
 
-1304: 23b2
+1304: 23b0
 goto(drawbranches)
 
 1306: 23d8
@@ -608,73 +608,53 @@ draw(v2,v3,3)
 
 
 
-1328: 240a
-goto(scrollbranches)
+---------ERASE OLD BRANCHES
+1328: 23b0
+goto(drawbranches)
 
 
 
 -- ERASE BOTTOM BRANCH
-1330: a3a0
-index = 0928
-
-1332: 6216
-v2 = 22
-
-1334: 630f
-v3 = 15
-
-1336: 3700
-if v7 == 0 then skip next
-
-1338: 6222
-v2 = 34
-
-1340: 3700
-if v7 == 0 then skip next
-
-1342: a3a4
-index = 0932
-
-1344: d234
-draw(v2,v3,4)
+1330: 240a
+goto(scrollbranches)
 
 
 
-1346: 234c -- unswing
+1332: 234c -- unswing
 goto(drawguy)
 
 
 
 
-1348: 80a0
+1334: 80a0
 v0 = va
 
-1350: 6100
+1336: 6100
 v1 = 0
 
 
-1352: 5080 -- v0 is the new input
+1338: 5080 -- v0 is the new input
 if v0 == v8 then skip next
 
-1354: 236e
+1340: 236e
 goto(moveguy)
 
 
 -- redraw bottom log
-1356: 621e
+1342: 621e
 v2 = 30
 
-1358: 6310
+1344: 6310
 v3 = 16
 
-1360: a381
+1346: a381
 index = 897
 
-1362: d233
+1348: d233
 draw(v2,v3,3)
 
 
-1364: 23b2
+1350: 23b0
 goto(drawbranches)
 
 
@@ -682,5 +662,5 @@ goto(drawbranches)
 
 
 
-1366: 151c
+1352: 151c
 jump(mainloop)
