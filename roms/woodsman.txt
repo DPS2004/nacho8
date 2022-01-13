@@ -1,7 +1,7 @@
 0512-0513: 00e0 
 clearscreen 
 
-0515-0515: 1400
+0515-0515: 1500
 jump(init)
 
 
@@ -376,7 +376,7 @@ return
 
 ::initbranches::
 0936-0937: c91e
-v9 = band(random(0,255), 0011110)
+v9 = band(random(0,255), 00011110)
 
 0938-0939: 7901
 v9 += 1
@@ -493,7 +493,30 @@ v1 = 0
 1006-1007: d014
 draw(v0,v1,4)
 
-00ee
+1008-1009:00ee
+return
+
+1010: -- guy ko'd left (5 high)
+1015: -- guy ko'd right (5 high)
+1020: -- dropped axe (3 high)
+1023: -- stars init
+1028: -- stars xor mask
+
+
+::scrollbranches::
+1034-1035: 8996
+v9 = rshift(v9)
+
+1036-1037: 87f0
+v7 = vf
+
+1038-1039: c210
+v2 = band(random(0,255), 00010000)
+
+1040-1041: 8923
+v9 = xor(v9,v2)
+
+1042-1043: 00ee
 return
 
 
@@ -502,83 +525,162 @@ return
 
 ::init::
 
-1024-1025: 6802
+--ADD LINE NUMBERS!
+
+1280-1281: 6802
 v8 = 2
 
-1026-1027: 225a
+1282: 225a
 goto(drawground)
 
 ::titlescreen::
-1028-1029: 2304
+1284: 2304
 goto(drawtext)
 
-1030-1031: 2390
+1286: 2390
 goto(drawarrows)
 
 
-1032-1033: f00a
+1288: f00a
 v0 = waitforkey
 
 ::startgame::
-1034-1035: 2324
+1290: 2324
 goto(getlr)
 
-1036-1037: 8010
+1292: 8010
 v0 = v1
 
-1038-1039: 6100
+1294: 6100
 v1 = 0
 
-1040-1041: 236e
+1296: 236e
 goto(moveguy)
 
-1042-1043: 23a8
+1298: 23a8
 goto(initbranches)
 
-1044-1045: 2304
+1300: 2304
 goto(drawtext)
 
-1046-1047: 2390
+1302: 2390
 goto(drawarrows)
 
 
-1048-1049: 23b2
+1304: 23b2
 goto(drawbranches)
 
-1050-1051: 23d8
+1306: 23d8
 goto(drawtrunk)
 
 
 ::mainloop::
-1052-1053: f00a
+1308: f00a
 v0 = waitforkey
 
-1054-1055: 2324
+1310: 2324
 goto(getlr)
 
-1056-1057: 8010
-v0 = v1
+1312: 8080
+v0 = v8
 
-1058-1059: 6100
-v1 = 0
+1314: 8a10
+va = v1
 
-1060-1061: 5080
-if v0 == v8 then skip next
-
-1062-1063: 236e
-goto(moveguy)
-
-1064-1065: 6101
+1316: 6101
 v1 = 1
 
-1066-1067: 234c
+1318: 234c -- swing down
+goto(drawguy)
+
+--ERASE BOTTOM LOG
+1320: 621e
+v2 = 30
+
+1322: 6310
+v3 = 16
+
+1324: a381
+index = 897
+
+1326: d233
+draw(v2,v3,3)
+
+
+
+1328: 240a
+goto(scrollbranches)
+
+
+
+-- ERASE BOTTOM BRANCH
+1330: a3a0
+index = 0928
+
+1332: 6216
+v2 = 22
+
+1334: 630f
+v3 = 15
+
+1336: 3700
+if v7 == 0 then skip next
+
+1338: 6222
+v2 = 34
+
+1340: 3700
+if v7 == 0 then skip next
+
+1342: a3a4
+index = 0932
+
+1344: d234
+draw(v2,v3,4)
+
+
+
+1346: 234c -- unswing
 goto(drawguy)
 
 
-1068-1069: 234c
-goto(drawguy)
+
+
+1348: 80a0
+v0 = va
+
+1350: 6100
+v1 = 0
+
+
+1352: 5080 -- v0 is the new input
+if v0 == v8 then skip next
+
+1354: 236e
+goto(moveguy)
+
+
+-- redraw bottom log
+1356: 621e
+v2 = 30
+
+1358: 6310
+v3 = 16
+
+1360: a381
+index = 897
+
+1362: d233
+draw(v2,v3,3)
+
+
+1364: 23b2
+goto(drawbranches)
+
+
+---IF vf = 1 then there was a colission! go to game over.
 
 
 
-1070-1071: 141c
+1366: 151c
 jump(mainloop)
