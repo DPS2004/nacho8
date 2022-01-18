@@ -1,7 +1,50 @@
---ideally, this file is *entirely* separated from love2d.
-
 local nacho = {}
 
+function nacho.setup(dontusejit,bitops)
+  if not dontusejit then
+    local bit = require('bit')
+    nacho.bit = {}
+    
+    nacho.bit.tobit = bit.tobit
+    nacho.bit.tohex = bit.tohex
+    
+    nacho.bit.rol = bit.rol
+    nacho.bit.ror = bit.ror
+    
+    nacho.bit.lshift = bit.lshift
+    nacho.bit.rshift = bit.rshift
+    
+    nacho.bit.band = bit.band
+    nacho.bit.bor = bit.bor
+    nacho.bit.bxor = bit.bxor
+    
+    nacho.get = function(x,i)
+      return string.sub(x,i+1,i+1)
+    end
+    
+    nacho.gbit = function(byte,i)
+      return (nacho.bit.band(nacho.bit.rshift(byte, i), 0x01)) == 1
+    end
+    
+    nacho.binarystring = function(x,reverse)
+      local t = {}
+      for i = 0, 7 do
+        if reverse then
+          table.insert(t,1, nacho.bit.band(x, 0x01))
+        else
+          table.insert(t, nacho.bit.band(x, 0x01))
+        end
+        x = nacho.bit.ror(x, 1)
+      end
+      return table.concat(t)
+    end
+    
+    
+  else
+    
+  end
+
+end
 if not pr then
   pr = function() end
 end
@@ -40,7 +83,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     chip.dmp = function(val,pos,og,length)
       
       pos = pos or (chip.pc - 2)
-      og = og or tohex(chip.mem[pos],2)..tohex(chip.mem[pos+1],2)
+      og = og or nacho.bit.tohex(chip.mem[pos],2).. nacho.bit.tohex(chip.mem[pos+1],2)
       
       
       length = length or 2
@@ -85,8 +128,8 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       local bytestr = ''
       for dyi = 0,h-1 do 
         local sprbyte = chip.mem[chip.index+dyi] -- get byte from memory
-        binstr = binstr .. binarystring(sprbyte,true) .. '\n'
-        bytestr = bytestr .. tohex(sprbyte,2)
+        binstr = binstr .. nacho.binarystring(sprbyte,true) .. '\n'
+        bytestr = bytestr .. nacho.bit.tohex(sprbyte,2)
       end
       binstr = binstr:gsub('0','.')
       binstr = binstr:gsub('1','#')
@@ -257,12 +300,12 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
   end
   
   function chip.decode(b1,b2)
-    chip.last = tohex(b1,2)..tohex(b2,2)
+    chip.last = nacho.bit.tohex(b1,2).. nacho.bit.tohex(b2,2)
     pr('decoding '..chip.last)
-    local c = rshift(band(b1,0xf0),4) -- first nibble, the instruction
-    local x = band(b1,0x0f) -- second nibble, for a register
-    local y = rshift(band(b2,0xf0),4) -- third nibble, for a register
-    local n = band(b2,0x0f) -- fourth nibble, 4 bit number
+    local c = nacho.bit.rshift(nacho.bit.band(b1,0xf0),4) -- first nibble, the instruction
+    local x = nacho.bit.band(b1,0x0f) -- second nibble, for a register
+    local y = nacho.bit.rshift(nacho.bit.band(b2,0xf0),4) -- third nibble, for a register
+    local n = nacho.bit.band(b2,0x0f) -- fourth nibble, 4 bit number
     local nn = b2 -- second byte, 8 bit number
     local nnn = x*256 + b2 -- nibbles 2 3 and 4, 12 bits
     return c,x,y,n,nn,nnn
@@ -390,24 +433,24 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         chip.dmp('v'..x..' = bor(v'..x..'v'..y..')')
         
         pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
-        pr('setting v'..x..' to ' .. bor(chip.v[x],chip.v[y]))
-        chip.v[x] = bor(chip.v[x],chip.v[y])
+        pr('setting v'..x..' to ' .. nacho.bit.bor(chip.v[x],chip.v[y]))
+        chip.v[x] = nacho.bit.bor(chip.v[x],chip.v[y])
       elseif n == 2 then
         --register and
         pr('executing register and')
         chip.dmp('v'..x..' = band(v'..x..'v'..y..')')
         
         pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
-        pr('setting v'..x..' to ' .. band(chip.v[x],chip.v[y]))
-        chip.v[x] = band(chip.v[x],chip.v[y])
+        pr('setting v'..x..' to ' .. nacho.bit.band(chip.v[x],chip.v[y]))
+        chip.v[x] = nacho.bit.band(chip.v[x],chip.v[y])
       elseif n == 3 then
         --register xor
         pr('executing register xor')
         chip.dmp('v'..x..' = bxor(v'..x..'v'..y..')')
         
         pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
-        pr('setting v'..x..' to ' .. bxor(chip.v[x],chip.v[y]))
-        chip.v[x] = bxor(chip.v[x],chip.v[y])
+        pr('setting v'..x..' to ' .. nacho.bit.bxor(chip.v[x],chip.v[y]))
+        chip.v[x] = nacho.bit.bxor(chip.v[x],chip.v[y])
       elseif n == 4 then
         --register add
         pr('executing register add')
@@ -456,9 +499,9 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         
         chip.dmp(stradd..'v'..x..' = rshift(v'..x..', 1)')
         
-        local shiftout = gbit(chip.v[x],0)
-        pr('setting v'..x..' from '.. chip.v[x]..' to '..(rshift(chip.v[x],1))%256)
-        chip.v[x] = (rshift(chip.v[x],1))%256
+        local shiftout = nacho.gbit(chip.v[x],0)
+        pr('setting v'..x..' from '.. chip.v[x]..' to '..(nacho.bit.rshift(chip.v[x],1))%256)
+        chip.v[x] = (nacho.bit.rshift(chip.v[x],1))%256
         if shiftout then
           chip.v[0xf] = 1
           pr('shifted out 1')
@@ -497,9 +540,9 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         
         chip.dmp(stradd..'v'..x..' = lshift(v'..x..', 1')
         
-        local shiftout = gbit(chip.v[x],7)
-        pr('setting v'..x..' from '.. chip.v[x]..' to '..(lshift(chip.v[x],1))%256)
-        chip.v[x] = (lshift(chip.v[x],1))%256
+        local shiftout = nacho.gbit(chip.v[x],7)
+        pr('setting v'..x..' from '.. chip.v[x]..' to '..(nacho.bit.lshift(chip.v[x],1))%256)
+        chip.v[x] = (nacho.bit.lshift(chip.v[x],1))%256
         if shiftout then
           chip.v[0xf] = 1
           pr('shifted out 1')
@@ -558,7 +601,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       chip.dmp('v'..x..' = band(random(0,255), '..nn..')')
       chip.ms(164)
       
-      local rn = band(math.random(0,255),nn)
+      local rn = nacho.bit.band(math.random(0,255),nn)
       pr('setting v'..x..' from '.. chip.v[x]..' to '.. rn)
       chip.v[x] = rn
       
@@ -574,9 +617,9 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       chip.v[0xf] = 0 -- set vf to 0
       for dyi = 0,n-1 do -- iterate n times
         local sprbyte = chip.mem[chip.index+dyi] -- get byte from memory
-        pr('drawing ' .. binarystring(sprbyte,true))
+        pr('drawing ' .. nacho.binarystring(sprbyte,true))
         for dxi=0,7 do -- iterate through the byte
-          local val = gbit(sprbyte,7-dxi) -- get value of bit
+          local val = nacho.gbit(sprbyte,7-dxi) -- get value of bit
           if dx+dxi < chip.cf.sw and dy+dyi < chip.cf.sh then --make sure we are in bounds
             if val  then
               if chip.display[dx+dxi][dy+dyi+1] then 
@@ -600,23 +643,23 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         chip.unk(chip.pc+2)
         
         
-        pr('v'..x..' is'..tohex(chip.v[x],1))
+        pr('v'..x..' is'..nacho.bit.tohex(chip.v[x],1))
         if chip.keys then
           if chip.keys[chip.v[x]].down then
-            pr('key '..tohex(chip.v[x],1)..' is down')
+            pr('key '..nacho.bit.tohex(chip.v[x],1)..' is down')
             pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
             chip.pc = chip.pc + 2
             
             chip.ms(73,-9)
           else
-            pr('key '..tohex(chip.v[x],1)..' is not down')
+            pr('key '..nacho.bit.tohex(chip.v[x],1)..' is not down')
             pr('pc remains at '..chip.pc)
             
             chip.ms(73,9)
           end
         else
           print('no key setup found! assuming that no keys are pressed.')
-          pr('key '..tohex(chip.v[x],1)..' is not down')
+          pr('key '..nacho.bit.tohex(chip.v[x],1)..' is not down')
           pr('pc remains at '..chip.pc)
           
           chip.ms(73,9)
@@ -629,15 +672,15 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         chip.unk(chip.pc)
         chip.unk(chip.pc+2)
         
-        pr('v'..x..' is'..tohex(chip.v[x],1))
+        pr('v'..x..' is'..nacho.bit.tohex(chip.v[x],1))
         if chip.keys then
           if chip.keys[chip.v[x]].down then
-            pr('key '..tohex(chip.v[x],1)..' is down')
+            pr('key '..nacho.bit.tohex(chip.v[x],1)..' is down')
             pr('pc remains at '..chip.pc)
             
             chip.ms(73,-9)
           else
-            pr('key '..tohex(chip.v[x],1)..' is not down')
+            pr('key '..nacho.bit.tohex(chip.v[x],1)..' is not down')
             pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
             chip.pc = chip.pc + 2
             
@@ -645,7 +688,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
           end
         else
           print('no key setup found! assuming that no keys are pressed.')
-          pr('key '..tohex(chip.v[x],1)..' is not down')
+          pr('key '..nacho.bit.tohex(chip.v[x],1)..' is not down')
           pr('pc has gone from '..chip.pc.. ' to '..chip.pc + 2)
           chip.pc = chip.pc + 2
           
@@ -737,9 +780,9 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         chip.dmp('index = font(v'..x..')')
         chip.ms(91)
         
-        pr('v'..x..' is ' .. tohex(chip.v[x]))
-        local newindex = 0x050 + band(chip.v[x],0x0f)*5 --get character last nybble of vx
-        pr('changing index from '..chip.index..' to ' .. tohex(newindex) ..'(should be character '..tohex(chip.v[x])..')')
+        pr('v'..x..' is ' .. nacho.bit.tohex(chip.v[x]))
+        local newindex = 0x050 + nacho.bit.band(chip.v[x],0x0f)*5 --get character last nybble of vx
+        pr('changing index from '..chip.index..' to ' .. nacho.bit.tohex(newindex) ..'(should be character '..nacho.bit.tohex(chip.v[x])..')')
         chip.index = newindex ---AAAAAAAAAAAA WHY DID THIS HAPPEN TWICE I SWEAR TO
       elseif nn == 0x33 then
         --decimal split

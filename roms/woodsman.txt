@@ -520,6 +520,172 @@ v9 = xor(v9,v2)
 return
 
 
+::getkey:: 
+1044: 6000
+v0 = 0
+
+1046: 6101
+v1 = 1
+
+::keyloop::
+1048: e0a1
+if not keydown(v0) then skip next'
+
+1050: 00ee
+return
+
+1052: 7001
+v0 += 1
+
+
+1054: 3010
+if v0 == 16 then skip next
+
+1056: 1418
+jump(keyloop)
+
+1058: 6100
+v1 = 0
+
+1060: 00ee
+return
+
+--1070: 8080 (for extra v parts)
+--1072: GA
+--1080: M
+--1088: E
+--1096: OV
+--1104: R
+
+--1112: game over text position data
+x,y,offset,height
+
+::gameover::
+
+1140: 8080
+v0 = v8
+
+1142: 6100
+v1 = 0
+
+1144: 234c
+goto(drawguy)
+
+1146: a3f2
+index = 1010
+
+1148: 600e
+v0 = 14
+
+1150: 6113
+v1 = 19
+
+1152: 3800
+if v8 == 0 then skip next
+
+1154: a3f7
+index = 1015
+
+1156: 3800
+if v8 == 0 then skip next
+
+1158: 602b
+v0 = 43
+
+1160: d015
+draw(v0,v1,5)
+
+1162: a3fc
+index = 1020
+
+1164: 6019
+v0 = 25
+
+1166: 3800
+if v8 == 0 then skip next
+
+1168: 7025
+v0 = 37
+
+1170: d013
+draw(v0,v1,3)
+
+--draw game over text
+
+1172: 661c
+v6 = 28
+
+1174: 22e0
+goto(bigdraw)
+
+1176: 60a4 --- set bigdraw sprite position
+v0 = 0xa4
+
+1178: 6158
+v1 = 0x58
+
+1180: a2E4
+index  = 740
+
+1182: f155
+for i=0,1 do index + i = vi
+
+1184: 6158
+v1 = 0x2e
+
+1186: a2f6
+index  = 758
+
+1188: f155
+for i=0,1 do index + i = vi
+
+1190: 22e0
+goto(bigdraw)
+
+--- DRAW SPARKLES
+1192: a3ff
+index = 1023
+
+1194: 620a
+v2 = 10
+
+1196: 630d
+v3 = 13
+
+1198: 3800
+if v8 == 0 then skip next
+
+1200: 6231
+v2 = 49
+
+1202: d235
+draw(v2,v3,5)
+
+1204: a404
+index = 1028
+
+
+
+::drawsparkles::
+1206: d235
+draw(v2,v3,5)
+
+
+1208: 2414
+goto(getkey)
+
+1210: 3100
+if v1 == 1 then skip next
+
+1212: 14B6
+jump(drawsparkles)
+
+
+1214: 151c
+jump(mainloop)
+
+
+
 
 
 
@@ -575,92 +741,114 @@ goto(drawtrunk)
 
 
 ::mainloop::
-1308: f00a
-v0 = waitforkey
+1308: 2414
+goto(getkey)
 
-1310: 2324
+1310: 3100
+if v1 == 0 then skip next
+
+1312: 1526
+jump(yeskey)
+
+1314: 8000 -- if no key is found
+noop
+
+-- in the future this will go to a subroutine that manages a countdown timer.
+
+1316: 151c
+jump(mainloop)
+
+::yeskey::
+1318: 2324
 goto(getlr)
 
-1312: 8080
+1320: 8080
 v0 = v8
 
-1314: 8a10
+1322: 8a10
 va = v1
 
-1316: 6101
+1324: 6101
 v1 = 1
 
-1318: 234c -- swing down
+1326: 234c -- swing down
 goto(drawguy)
 
 --ERASE BOTTOM LOG
-1320: 621e
+1328: 621e
 v2 = 30
 
-1322: 6310
+1330: 6310
 v3 = 16
 
-1324: a381
+1332: a381
 index = 897
 
-1326: d233
+1334: d233
 draw(v2,v3,3)
 
 
 
 ---------ERASE OLD BRANCHES
-1328: 23b0
+1336: 23b0
 goto(drawbranches)
 
 
 
 -- ERASE BOTTOM BRANCH
-1330: 240a
+1338: 240a
 goto(scrollbranches)
 
 
+1340: 6101
+v1 = 1
 
-1332: 234c -- unswing
+1342:8080
+v0 = v8
+
+1344: 234c -- unswing
 goto(drawguy)
 
 
 
 
-1334: 80a0
+1346: 80a0
 v0 = va
 
-1336: 6100
+1348: 6100
 v1 = 0
 
 
-1338: 5080 -- v0 is the new input
+1350: 5080 -- v0 is the new input
 if v0 == v8 then skip next
 
-1340: 236e
+1352: 236e
 goto(moveguy)
 
 
 -- redraw bottom log
-1342: 621e
+1354: 621e
 v2 = 30
 
-1344: 6310
+1356: 6310
 v3 = 16
 
-1346: a381
+1358: a381
 index = 897
 
-1348: d233
+1360: d233
 draw(v2,v3,3)
 
 
-1350: 23b0
+1362: 23b0
 goto(drawbranches)
 
-
+1364: 3f00
+if vf == 0 then skip next
 ---IF vf = 1 then there was a colission! go to game over.
 
+1366: 1xxx
+jump(gameover)
 
-
-1352: 151c
+1368: 151c
 jump(mainloop)

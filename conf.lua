@@ -6,7 +6,7 @@ function love.conf(t) -- love2d config
   prgconf = { --chip8 config
     file = "roms/woodsman.ch8", -- file to load into memory
     scale = 8, -- screen scale
-    chatty = true, 
+    chatty = false, 
     choutput = {-- what things do we want to hear about from chatty?
       all = true, 
       ops = true,
@@ -18,7 +18,7 @@ function love.conf(t) -- love2d config
     -- cosmac
     -- bisqwit
     -- custom
-    mode = "common",
+    mode = "cosmac",
     framebyframe = false,
     -- the custom mode gets loaded from this table
     custom = {
