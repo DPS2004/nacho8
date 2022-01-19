@@ -60,6 +60,381 @@ function nacho.addleadings(x,n,f)
   return r
 end
 
+function nacho.trim(s)
+   return s:match "^%s*(.-)%s*$"
+end
+
+function nacho.split(instr, s)
+  s = s or "%s"
+  local t = {}
+  for str in string.gmatch(instr, "([^"..s.."]+)") do
+    table.insert(t, str)
+  end
+  return t
+end
+
+function nacho.copy(orig, copies)
+  copies = copies or {}
+  local orig_type = type(orig)
+  local copy
+  if orig_type == 'table' then
+    if copies[orig] then
+      copy = copies[orig]
+    else
+      copy = {}
+      copies[orig] = copy
+      for orig_key, orig_value in next, orig, nil do
+        copy[nacho.copy(orig_key, copies)] = nacho.copy(orig_value, copies)
+      end
+      setmetatable(copy, nacho.copy(getmetatable(orig), copies))
+    end
+else -- number, string, boolean, etc
+    copy = orig
+  end
+  return copy
+end
+
+function nacho.loadspritepng(fn)
+  error('loadspritepng not set up')
+end
+
+function nacho.compile(nch) -- compile .nch files to .ch8
+  
+  local function trimall(t)
+    local nt = {}
+    for i,v in ipairs(t) do
+      print(v)
+      local trimmed = nacho.trim(v)
+      if trimmed ~= '' then
+        table.insert(nt,trimmed)
+        
+      end
+    end
+    return nt
+  end
+  
+  
+  
+  local function startswith(str,k)
+    if (string.sub(nacho.trim(str),0,#k) == k) then
+      return string.sub(nacho.trim(str),#k+1)
+    else
+      return nil
+    end
+  end
+  
+  local function parsecommand(line,k)
+    local testerline = startswith(line,k..'(')
+    line = startswith(line,k)
+    if not testerline then -- check if line start matches k
+      --if it doesnt, then exit
+      return nil
+    end
+    
+    --step 1: get rid of ending comments
+    local i1, i2 = string.find(line,'--',1,true)
+    if i1 then
+      line = nacho.trim(string.sub(line,0,i1-1))
+    end
+    
+    
+    local params = {}
+    for v in string.gmatch(string.sub(line,2), '([^,]+)') do
+      v = nacho.trim(v)
+      table.insert(params,v)
+    end
+    if params[#params] then
+      params[#params] = string.sub(params[#params],1,-2) --remove )
+    end
+    
+    return params
+    
+    
+  end
+  
+  local function findbefore(str,k)
+    k = k or "("
+    local fi = string.find(str,k,1,true)
+    if fi then
+      return string.sub(str,0,fi-1)
+    else
+      return nil
+    end
+  end
+  
+  
+  local function findafter(str,k)
+    k = k or "="
+    local _,fi = string.find(str,k,1,true)
+    if fi then
+      return string.sub(str,fi+1)
+    else
+      return nil
+    end
+  end
+  
+  local function sandwich(j,str,k)
+    return findbefore(findafter(str,j),k)
+  end
+  
+  
+  local lines = {}
+  for i,v in ipairs(nacho.split(nch,'\n')) do
+    local trimmed = nacho.trim(v)
+    if trimmed ~= '' and string.sub(trimmed,1,2) ~= '--' then
+      table.insert(lines,nacho.trim(v))
+    end
+  end
+  
+  --first we need to load the spritedata png if it exists
+  
+  local spritedata = nil
+  
+  for i,line in ipairs(lines) do
+    local params = parsecommand(line,'loadspritedata')
+    
+    if params then
+      spritedata = nacho.loadspritepng(params[1])
+      lines[i] = ''
+    end
+  end
+  
+  
+  --time to deal with macro and const
+  
+  macros = {}
+  
+  for i,line in ipairs(lines) do
+    line = startswith(line,'_macro ')
+    local macrolines = {}
+    if line then
+      local foundend = false
+      for ii,iline in ipairs(lines) do
+        
+        if ii > i then
+          
+          
+          
+          if not foundend then
+            if startswith(iline,'_macroend') then
+              foundend = true
+            else
+              table.insert(macrolines,iline) 
+            end
+            lines[ii] = ''
+          end
+          
+          
+        end
+        
+      end
+      
+      table.insert(macros,{def = line,lines = macrolines})
+      lines[i] = ''
+    end
+  end
+  lines = trimall(lines)
+  -- at this point, all macro definitions have been removed
+  
+  -- we now need to reinsert the macros
+  
+  
+  
+  for li,line in ipairs(lines) do
+    for mi, macro in ipairs(macros) do
+      if (findbefore(line) and (findbefore(line) == findbefore(macro.def)) ) or line == macro.def then
+        print(li,'removing '..lines[li])
+        table.remove(lines,li)
+        local mlines = {}
+        for i,v in ipairs(macro.lines) do
+          table.insert(mlines,v)
+        end
+        
+        local mparams = {}
+        local lparams = {}
+        if findbefore(macro.def) then
+          
+          mparams = parsecommand(macro.def,findbefore(macro.def))
+          lparams = parsecommand(line,findbefore(line))
+          
+          
+        end
+        
+        
+        for i,v in ipairs(mparams) do
+          
+          for mli,mlv in ipairs(mlines) do
+            mlines[mli] = mlines[mli]:gsub(mparams[i],lparams[i])
+            
+          end
+          
+        end
+        
+        for i,v in ipairs(mlines) do
+          
+          table.insert(lines,li-1+i,v)
+          
+        end
+        
+        
+      end
+    
+    end
+  end
+  
+  -- all macros have been reinserted
+  
+  -- time for constants
+  
+  
+  local constants = {}
+  
+  
+  for li,line in ipairs(lines) do
+    line = startswith(line,'_const ') -- _const testconst = 1 -- comments
+    
+    if line then --testconst = 1 -- comments
+      local i1, i2 = string.find(line,'--',1,true)
+      if i1 then
+        line = nacho.trim(string.sub(line,0,i1-1))  --testconst = 1
+      end
+      print(line)
+      
+      local constname = nacho.trim(findbefore(line,'='))
+      local constval = nacho.trim(findafter(line,'='))
+      
+      
+      local params = parsecommand(constval,'load')
+      if params then
+        table.insert(lines,li+1,'@'..constname..':')
+        for si,sv in ipairs(spritedata[tonumber(params[1])+1]) do
+          
+          table.insert(lines,li+si+1,'*'..nacho.bit.tohex(sv,2))
+        end
+        
+        
+        
+        lines[li] = ''
+      elseif parsecommand(constval,'loadsize') then
+        
+        params = parsecommand(constval,'loadsize')
+        
+        constants[constname] = #spritedata[tonumber(params[1])+1]
+        
+        lines[li] = ''
+      else
+        
+        constants[constname] = constval
+        
+        lines[li] = ''
+        
+        
+      end
+      
+      
+      
+      
+    end
+    
+  end
+  
+  lines = trimall(lines)
+  
+  print('final final:')
+  lines = trimall(lines)
+  
+  print('!!!!!!!TIME TO DEAL WITH JUMPS.!!!!!!!!!!')
+  local jindex = 512
+  for li,line in ipairs(lines) do
+    print('jindex: '..jindex)
+    print(line)
+    local startch = string.sub(line,0,1)
+    if startch == '@' then
+      constants[sandwich('@',line,':')]=jindex
+      print('setting ' .. sandwich('@',line,':') .. ' to '.. jindex)
+      lines[li] = ''
+    elseif startch == '*' then
+      jindex = jindex + 1
+    else
+      jindex = jindex + 2
+    end
+    
+    
+  end
+  
+  lines = trimall(lines)
+  print('set all constants to their actual values')
+  for li,line in ipairs(lines) do
+    for const,constval in pairs(constants) do
+      lines[li] = lines[li]:gsub(const,constval)
+      
+      
+    end
+  end
+  lines = trimall(lines)
+
+  local cmdlist = {
+    'cls',
+    'jump',
+    'draw'
+  }
+  
+  local bytelines = {}
+  print('FINAL FINAL PASS! MAKING BYTES!')
+  
+  local function addbyte(byte)
+    table.insert(bytelines,nacho.bit.tobit(tonumber('0x'..byte)))
+  end
+  local function doublebytes(bytes)
+    addbyte(string.sub(bytes,1,2))
+    addbyte(string.sub(bytes,3,4))
+  end
+  
+  
+  
+  for i,line in ipairs(lines) do
+    
+    local params = nil
+    local fcmd = nil
+    
+    for icmd,vcmd in ipairs(cmdlist) do
+      if not params then
+        params = parsecommand(line,vcmd)
+        fcmd = vcmd
+      end
+    end
+    
+    if params then
+      if fcmd == 'cls' then
+        doublebytes('00e0')
+      elseif fcmd == 'jump' then
+        doublebytes('1' .. nacho.bit.tohex(params[1],3))
+      elseif fcmd == 'draw' then
+        doublebytes('d' .. nacho.bit.tohex(string.sub(params[1],2,2),1) .. nacho.bit.tohex(string.sub(params[2],2,2),1) .. nacho.bit.tohex(params[3],1) )
+      end
+    else
+      local startch = string.sub(line,0,1)
+      if startch == '*' then
+        table.insert(bytelines,string.sub(line,2,3))
+      elseif startswith(line,'index') then
+        doublebytes('a' .. nacho.bit.tohex(nacho.trim(findafter(line,'=')),3))
+      elseif startch == 'v' then
+        local setvar = tonumber('0x'..string.sub(line,2,2))
+        --print(toset)
+        local toset = nacho.trim(findafter(line,'='))
+        print(toset)
+      end
+      
+    end
+      
+    
+  end
+  
+  return bytelines
+  
+  
+end
+
 function nacho.init(mode,cmode,extras) -- make a new instance of chip8
   local chip = {}
   

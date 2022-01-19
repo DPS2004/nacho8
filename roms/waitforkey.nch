@@ -1,0 +1,34 @@
+loadspritedata(waitforkey.png)
+
+-- this is a comment
+
+cls()
+-- so is this
+jump(init)
+
+_const pika = 25
+
+_macro loadsprite(#A#,#I#)
+  _const sprite_#A#_index = load(#I#)
+  _const sprite_#A#_height = loadsize(#I#)
+_macroend
+
+loadsprite(SPRITE1,0) 
+loadsprite(SPRITE2,1) 
+
+
+_macro drawsprite(#A#,#B#,#C#)
+  index = sprite_#A#_index
+  v0 = #B#
+  v1 = #C#
+  draw(v0,v1,sprite_#A#_height)
+_macroend
+
+@init:
+
+
+drawsprite(SPRITE1,2,2)
+drawsprite(SPRITE2,pika,2)
+
+jump(init)
+

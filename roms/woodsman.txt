@@ -604,7 +604,7 @@ v0 = 25
 1166: 3800
 if v8 == 0 then skip next
 
-1168: 7025
+1168: 6025
 v0 = 37
 
 1170: d013
@@ -615,74 +615,71 @@ draw(v0,v1,3)
 1172: 661c
 v6 = 28
 
-1174: 22e0
-goto(bigdraw)
-
-1176: 60a4 --- set bigdraw sprite position
+1174: 60a4 --- set bigdraw sprite position
 v0 = 0xa4
 
-1178: 6158
+1176: 6158
 v1 = 0x58
 
-1180: a2E4
+1178: a2E4
 index  = 740
 
-1182: f155
+1180: f155
 for i=0,1 do index + i = vi
 
-1184: 6158
+1182: 612e
 v1 = 0x2e
 
-1186: a2f6
+1184: a2f6
 index  = 758
 
-1188: f155
+1186: f155
 for i=0,1 do index + i = vi
 
-1190: 22e0
+1188: 22e0
 goto(bigdraw)
 
 --- DRAW SPARKLES
-1192: a3ff
+1190: a3ff
 index = 1023
 
-1194: 620a
+1192: 620a
 v2 = 10
 
-1196: 630d
+1194: 630d
 v3 = 13
 
-1198: 3800
+1196: 3800
 if v8 == 0 then skip next
 
-1200: 6231
+1298: 6231
 v2 = 49
 
-1202: d235
+1200: d235
 draw(v2,v3,5)
 
-1204: a404
+1202: a404
 index = 1028
 
 
 
 ::drawsparkles::
-1206: d235
+1204: d235
 draw(v2,v3,5)
 
 
-1208: 2414
+1206: 2414
 goto(getkey)
 
-1210: 3100
+1218: 3100
 if v1 == 1 then skip next
 
-1212: 14B6
+1220: 14B6
 jump(drawsparkles)
 
 
-1214: 151c
-jump(mainloop)
+1222: 151c
+jump(startgame)
 
 
 
@@ -847,7 +844,7 @@ goto(drawbranches)
 if vf == 0 then skip next
 ---IF vf = 1 then there was a colission! go to game over.
 
-1366: 1xxx
+1366: 1474
 jump(gameover)
 
 1368: 151c
