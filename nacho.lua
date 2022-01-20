@@ -546,11 +546,9 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       local bytestr = ''
       for dyi = 0,h-1 do 
         local sprbyte = chip.mem[chip.index+dyi] -- get byte from memory
-        binstr = binstr .. nacho.binarystring(sprbyte,true) .. '\n'
+        binstr = binstr .. '*' .. nacho.bit.tohex(sprbyte,2) .. ' -- ' .. nacho.binarystring(sprbyte,true):gsub('0','.'):gsub('1','#') .. '\n'
         bytestr = bytestr .. nacho.bit.tohex(sprbyte,2)
       end
-      binstr = binstr:gsub('0','.')
-      binstr = binstr:gsub('1','#')
       if chip.sprites[pos] then
         if chip.sprites[pos].height >= h then
           return
@@ -1125,7 +1123,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       elseif nn == 0x0a then
         --wait for key
         pr('executing wait for key')
-        chip.dmp('v'..x ..' = waitforkey')
+        chip.dmp('waitforkey(v'..x ..')')
         
         
         if chip.keys then

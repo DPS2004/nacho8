@@ -157,4 +157,4 @@ index = 588
 v0 = 57
 v1 = 30
 draw(v0, v1, 2)
-v2 = waitforkey
+waitforkey(v2)

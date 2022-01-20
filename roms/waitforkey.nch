@@ -2,14 +2,19 @@ loadspritedata(waitforkey.png)
 
 -- this is a comment
 
-cls()
+cls() 
 -- so is this
-jump(init)
+jump(init) --post line comment
 
-_macro loadsprite(#A#,#I#)
+_macro loadsprite(#A#,#I#) 
   _const sprite_#A#_index = load(#I#)
   _const sprite_#A#_height = loadsize(#I#)
 _macroend
+
+*de --hello
+*ad
+*be
+*ef
 
 loadsprite(text_fx,0) 
 loadsprite(text_oc,1) 
