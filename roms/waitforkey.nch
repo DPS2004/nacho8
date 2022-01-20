@@ -6,15 +6,28 @@ cls()
 -- so is this
 jump(init)
 
-_const pika = 25
-
 _macro loadsprite(#A#,#I#)
   _const sprite_#A#_index = load(#I#)
   _const sprite_#A#_height = loadsize(#I#)
 _macroend
 
-loadsprite(SPRITE1,0) 
-loadsprite(SPRITE2,1) 
+loadsprite(text_fx,0) 
+loadsprite(text_oc,1) 
+loadsprite(text_te,3) 
+loadsprite(text_st,4) 
+
+loadsprite(spr_line,2) 
+
+loadsprite(spr_dps_head1,5) 
+loadsprite(spr_dps_head2,7) 
+
+loadsprite(spr_dps_body,8) 
+
+loadsprite(spr_dps_hand,6) 
+
+loadsprite(spr_dps_shoe1,9)
+loadsprite(spr_dps_shoe2,10)
+
 
 
 _macro drawsprite(#A#,#B#,#C#)
@@ -24,11 +37,106 @@ _macro drawsprite(#A#,#B#,#C#)
   draw(v0,v1,sprite_#A#_height)
 _macroend
 
+_macro drawheight(#A#,#B#,#C#,#D#)
+  index = sprite_#A#_index
+  v0 = #B#
+  v1 = #C#
+  draw(v0,v1,#D#)
+_macroend
+
+
+
+
 @init:
 
 
-drawsprite(SPRITE1,2,2)
-drawsprite(SPRITE2,pika,2)
+drawsprite(text_fx,2,2)
+drawsprite(text_oc,10,2)
+drawsprite(spr_line,18,3)
 
-jump(init)
+drawsprite(text_te,24,2)
+drawsprite(text_st,33,2)
 
+drawsprite(spr_dps_head1,45,3)
+drawsprite(spr_dps_head2,53,4)
+
+
+drawsprite(spr_dps_hand,60,16)
+
+drawheight(spr_line,52,19,3)
+
+drawsprite(spr_dps_body,53,17)
+
+drawsprite(spr_dps_hand,47,22)
+
+drawheight(spr_line,52,22,3)
+
+drawsprite(spr_dps_shoe1,50,28)
+drawsprite(spr_dps_shoe1,57,28)
+
+drawsprite(spr_dps_shoe2,49,30)
+drawsprite(spr_dps_shoe2,57,30)
+
+
+
+@main:
+
+waitforkey(v2)
+
+skipif(v4 = 1)
+jump(set4)
+--else
+jump(eraselast)
+
+@set4:
+v4 = 1
+jump(findkeypos)
+
+@eraselast:
+draw(v0, v1, 5)
+
+
+
+@findkeypos:
+
+_const pos1 = 11
+_const pos2 = 16
+_const pos3 = 21
+_const pos4 = 26
+
+_macro checkforkey(#KEY#,#X#,#Y#)
+  skipif(v2 = 0x#KEY#)
+  jump(nextkey#KEY#)
+  v0 = #X#
+  v1 = #Y#
+  jump(foundkey)
+  
+  @nextkey#KEY#:
+_macroend
+
+checkforkey(1,pos1,pos1)
+checkforkey(2,pos2,pos1)
+checkforkey(3,pos3,pos1)
+checkforkey(c,pos4,pos1)
+
+checkforkey(4,pos1,pos2)
+checkforkey(5,pos2,pos2)
+checkforkey(6,pos3,pos2)
+checkforkey(d,pos4,pos2)
+
+checkforkey(7,pos1,pos3)
+checkforkey(8,pos2,pos3)
+checkforkey(9,pos3,pos3)
+checkforkey(e,pos4,pos3)
+
+
+checkforkey(a,pos1,pos4)
+checkforkey(0,pos2,pos4)
+checkforkey(b,pos3,pos4)
+checkforkey(f,pos4,pos4)
+
+
+@foundkey:
+font(v2)
+draw(v0, v1, 5)
+jump(main)

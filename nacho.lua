@@ -376,13 +376,17 @@ function nacho.compile(nch) -- compile .nch files to .ch8
   local cmdlist = {
     'cls',
     'jump',
-    'draw'
+    'draw',
+    'waitforkey',
+    'skipif',
+    'font'
   }
   
   local bytelines = {}
   print('FINAL FINAL PASS! MAKING BYTES!')
   
   local function addbyte(byte)
+    print(byte)
     table.insert(bytelines,nacho.bit.tobit(tonumber('0x'..byte)))
   end
   local function doublebytes(bytes)
@@ -393,7 +397,7 @@ function nacho.compile(nch) -- compile .nch files to .ch8
   
   
   for i,line in ipairs(lines) do
-    
+    print('converting '..line)
     local params = nil
     local fcmd = nil
     
@@ -411,18 +415,57 @@ function nacho.compile(nch) -- compile .nch files to .ch8
         doublebytes('1' .. nacho.bit.tohex(params[1],3))
       elseif fcmd == 'draw' then
         doublebytes('d' .. nacho.bit.tohex(string.sub(params[1],2,2),1) .. nacho.bit.tohex(string.sub(params[2],2,2),1) .. nacho.bit.tohex(params[3],1) )
+      elseif fcmd == 'waitforkey' then
+        doublebytes('f' .. nacho.bit.tohex(string.sub(params[1],2,2),1) .. '0a')
+      elseif fcmd == 'skipif' then
+        local tcond = nacho.trim(params[1])
+        local firstv = nacho.bit.tohex(string.sub(tcond,2,2),1)
+        local secondv = nacho.trim(findafter(tcond,'='))
+        local usenot = false
+        if string.find(tcond,'~=',1,true) or string.find(tcond,'!=',1,true) then
+          usenot = true
+        end
+        if string.sub(secondv,0,1) == 'v' then
+          if not usenot then
+            doublebytes('5'..firstv.. nacho.bit.tohex(string.sub(secondv,2,2),1)..'0')
+          else
+            doublebytes('9'..firstv.. nacho.bit.tohex(string.sub(secondv,2,2),1)..'0')
+          end
+        else
+          if not usenot then
+            doublebytes('3'..firstv.. nacho.bit.tohex(secondv,2))
+          else
+            doublebytes('4'..firstv.. nacho.bit.tohex(secondv,2))
+          end
+        end
+      elseif fcmd == "font" then
+        doublebytes('f' .. nacho.bit.tohex(string.sub(params[1],2,2),1)..'29')
       end
     else
       local startch = string.sub(line,0,1)
       if startch == '*' then
-        table.insert(bytelines,string.sub(line,2,3))
+        addbyte(string.sub(line,2,3))
       elseif startswith(line,'index') then
         doublebytes('a' .. nacho.bit.tohex(nacho.trim(findafter(line,'=')),3))
       elseif startch == 'v' then
-        local setvar = tonumber('0x'..string.sub(line,2,2))
+        local setvar = string.sub(line,2,2)
         --print(toset)
-        local toset = nacho.trim(findafter(line,'='))
-        print(toset)
+        local toset = tonumber(nacho.trim(findafter(line,'=')))
+        if string.sub(toset,0,1) == 'v' then
+          if false then --check for add, subtract, etc etc
+            
+          else
+            --8XY0
+          end
+        else
+          if false then --check for add
+            
+          else
+            --6XNN
+            doublebytes('6'..setvar..nacho.bit.tohex(toset,2))
+            
+          end
+        end
       end
       
     end
@@ -692,7 +735,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     if c == 0 then
       if nnn == 0x0e0 then
         -- clear screen
-        chip.dmp('clearscreen')
+        chip.dmp('cls()')
         chip.ms(109)
         
         pr('executing clear screen')
@@ -1282,10 +1325,10 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         end
         
         if lblname then
-          dstring = dstring .. '::'..lblname..'::\n'
+          dstring = dstring .. '@'..lblname..':\n'
         end
-        dstring = dstring .. nacho.addleadings(op.pos) .. '-' .. nacho.addleadings(op.pos+op.length) .. ': ' .. op.og .. '\n'
-        dstring = dstring .. op.val .. '\n\n'
+        --dstring = dstring .. nacho.addleadings(op.pos) .. '-' .. nacho.addleadings(op.pos+op.length) .. ': ' .. op.og .. '\n'
+        dstring = dstring .. op.val .. '\n'
       end
       return dstring
       
