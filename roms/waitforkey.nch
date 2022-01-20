@@ -11,10 +11,10 @@ _macro loadsprite(#A#,#I#)
   _const sprite_#A#_height = loadsize(#I#)
 _macroend
 
-*de --hello
-*ad
-*be
-*ef
+-- *de --hello
+-- *ad
+-- *be
+-- *ef
 
 loadsprite(text_fx,0) 
 loadsprite(text_oc,1) 

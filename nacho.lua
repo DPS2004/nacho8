@@ -510,52 +510,56 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       chip.dump[pos] = {length=length - 1,val=val,og=og,pos=pos}
     end
     chip.dmpj = function(txt,val,pos,pos2)
-      if not chip.labels[val] then
-        chip.labels[val] = {}
-        chip.lcount[val] = 0
-      end
-      
-      local lblholder = nil
-      local lblname = nil
-      
-      for _,lb in pairs(chip.labels) do
-        for k,v in pairs(lb) do
-          if v.pos == pos then -- this label already exists!
-            lblholder = _
-            lblname = k
+      if pos >= 512 then
+        if not chip.labels[val] then
+          chip.labels[val] = {}
+          chip.lcount[val] = 0
+        end
+        
+        local lblholder = nil
+        local lblname = nil
+        
+        for _,lb in pairs(chip.labels) do
+          for k,v in pairs(lb) do
+            if v.pos == pos then -- this label already exists!
+              lblholder = _
+              lblname = k
+            end
           end
         end
-      end
-      
-      if lblname then
         
+        if lblname then
+          
+          
+        else
         
-      else
-      
-        chip.lcount[val] = chip.lcount[val] + 1
-        --haha what
-        chip.labels[val][val..'_'..chip.lcount[val]] = {pos=pos}
-        lblname = val..'_'..chip.lcount[val]
-        chip.unk(pos)
+          chip.lcount[val] = chip.lcount[val] + 1
+          --haha what
+          chip.labels[val][val..'_'..chip.lcount[val]] = {pos=pos}
+          lblname = val..'_'..chip.lcount[val]
+          chip.unk(pos)
+        end
+        txt = txt:gsub('#LBL#',lblname)
       end
-      txt = txt:gsub('#LBL#',lblname)
       chip.dmp(txt,pos2)
     end
     chip.spr = function(pos,h)
-      local binstr = ''
-      local bytestr = ''
-      for dyi = 0,h-1 do 
-        local sprbyte = chip.mem[chip.index+dyi] -- get byte from memory
-        binstr = binstr .. '*' .. nacho.bit.tohex(sprbyte,2) .. ' -- ' .. nacho.binarystring(sprbyte,true):gsub('0','.'):gsub('1','#') .. '\n'
-        bytestr = bytestr .. nacho.bit.tohex(sprbyte,2)
-      end
-      if chip.sprites[pos] then
-        if chip.sprites[pos].height >= h then
-          return
+      if pos >= 512 then
+        local binstr = ''
+        local bytestr = ''
+        for dyi = 0,h-1 do 
+          local sprbyte = chip.mem[pos+dyi] -- get byte from memory
+          binstr = binstr .. '*' .. nacho.bit.tohex(sprbyte,2) .. ' -- ' .. nacho.binarystring(sprbyte,true):gsub('0','.'):gsub('1','#') .. '\n'
+          bytestr = bytestr .. nacho.bit.tohex(sprbyte,2)
         end
+        if chip.sprites[pos] then
+          if chip.sprites[pos].height >= h then
+            return
+          end
+        end
+        chip.dmp(binstr,pos,bytestr,h)
+        chip.sprites[pos] = {height=h}
       end
-      chip.dmp(binstr,pos,bytestr,h)
-      chip.sprites[pos] = {height=h}
       
     end
     
@@ -776,7 +780,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     elseif c == 3 then
       -- skip if equal
       pr('executing skip if equal')
-      chip.dmp('if v'..x..' == '..nn..' then jump('..chip.pc+2 ..') --skip next')
+      chip.dmp('skipif(v'..x..' = '..nn..')')
       chip.unk(chip.pc)
       chip.unk(chip.pc+2)
       chip.ms(55,9,nn == chip.v[x])
@@ -791,7 +795,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     elseif c == 4 then
       -- skip if not equal
       pr('executing skip if not equal')
-      chip.dmp('if v'..x..' != '..nn..' then jump('..chip.pc+2 ..') --skip next')
+      chip.dmp('skipif(v'..x..' != '..nn..')')
       chip.unk(chip.pc)
       chip.unk(chip.pc+2)
       chip.ms(55,9,nn ~= chip.v[x])
@@ -806,7 +810,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     elseif c == 5 then
       -- register skip if equal
       pr('executing register skip if equal')
-      chip.dmp('if v'..x..' == v'..y..' then jump('..chip.pc+2 ..') --skip next')
+      chip.dmp('skipif(v'..x..' = v'..y..')')
       chip.unk(chip.pc)
       chip.unk(chip.pc+2)
       chip.ms(73,9,chip.v[x] == chip.v[y])
@@ -970,7 +974,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     elseif c == 9 then
       -- register skip if not equal
       pr('executing register skip if not equal')
-      chip.dmp('if v'..x..' != v'..y..' then jump('..chip.pc+2 ..') --skip next')
+      chip.dmp('skipif(v'..x..' != v'..y..')')
       chip.unk(chip.pc)
       chip.unk(chip.pc+2)
       chip.ms(73,9,chip.v[x] ~= chip.v[y])
@@ -1193,7 +1197,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       elseif nn == 0x29 then
         --get font character
         pr('executing get font character')
-        chip.dmp('index = font(v'..x..')')
+        chip.dmp('font(v'..x..')')
         chip.ms(91)
         
         pr('v'..x..' is ' .. nacho.bit.tohex(chip.v[x]))

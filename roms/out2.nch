@@ -91,6 +91,9 @@ jump(jump_1)
 @spr_11:
 *84 -- #....#..
 *fc -- ######..
+*a2 -- #.#...#.
+*04 -- .....#..
+*60 -- .##.....
 
 @jump_1:
 index = 516
@@ -187,83 +190,10 @@ v1 = 11
 jump(jump_4)
 @jump_9:
 skipif(v2 = 12)
-jump(jump_10)
+unknown
 v0 = 26
 v1 = 11
 jump(jump_4)
-@jump_10:
-skipif(v2 = 4)
-jump(jump_11)
-v0 = 11
-v1 = 16
-jump(jump_4)
-@jump_11:
-skipif(v2 = 5)
-jump(jump_12)
-v0 = 16
-v1 = 16
-jump(jump_4)
-@jump_12:
-skipif(v2 = 6)
-jump(jump_13)
-v0 = 21
-v1 = 16
-jump(jump_4)
-@jump_13:
-skipif(v2 = 13)
-jump(jump_14)
-v0 = 26
-v1 = 16
-jump(jump_4)
-@jump_14:
-skipif(v2 = 7)
-jump(jump_15)
-v0 = 11
-v1 = 21
-jump(jump_4)
-@jump_15:
-skipif(v2 = 8)
-jump(jump_16)
-v0 = 16
-v1 = 21
-jump(jump_4)
-@jump_16:
-skipif(v2 = 9)
-jump(jump_17)
-v0 = 21
-v1 = 21
-jump(jump_4)
-@jump_17:
-skipif(v2 = 14)
-jump(jump_18)
-v0 = 26
-v1 = 21
-jump(jump_4)
-@jump_18:
-skipif(v2 = 10)
-jump(jump_19)
-v0 = 11
-v1 = 26
-jump(jump_4)
-@jump_19:
-skipif(v2 = 0)
-jump(jump_20)
-v0 = 16
-v1 = 26
-jump(jump_4)
-@jump_20:
-skipif(v2 = 11)
-jump(jump_21)
-v0 = 21
-v1 = 26
-jump(jump_4)
-@jump_21:
-skipif(v2 = 15)
-unknown
-v0 = 26
-v1 = 26
-jump(jump_4)
 @jump_4:
-font(v2)
 draw(v0, v1, 5)
 jump(jump_5)
