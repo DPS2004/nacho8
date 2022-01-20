@@ -48,6 +48,18 @@ end
 if not pr then
   pr = function() end
 end
+
+function nacho.loadtabletochip(prg,chip)
+  for i,v in ipairs(prg) do
+    chip.mem[0x200+(i-1)] = v
+  end
+  return chip
+end
+
+
+
+
+
 -- general utility functions go up here i guess?
 function nacho.addleadings(x,n,f)
   n = n or 4
@@ -104,7 +116,15 @@ function nacho.compile(nch) -- compile .nch files to .ch8
     local nt = {}
     for i,v in ipairs(t) do
       print(v)
+      
+      local i1, i2 = string.find(v,'--',1,true)
+      if i1 then
+        v = string.sub(v,0,i1-1)
+      end
+      
       local trimmed = nacho.trim(v)
+      
+      
       if trimmed ~= '' then
         table.insert(nt,trimmed)
         
@@ -363,12 +383,26 @@ function nacho.compile(nch) -- compile .nch files to .ch8
   end
   
   lines = trimall(lines)
+  
+  --Here is where the error is.
   print('set all constants to their actual values')
+  
+  local orderedconstants = {}
+  for k,v in pairs(constants) do
+    table.insert(orderedconstants,k)
+  end
+  
+  table.sort(orderedconstants, function(a,b) return #a>#b end)
+  
+  
+  for i,v in ipairs(orderedconstants) do
+    print(i,v)
+  end
+  
   for li,line in ipairs(lines) do
-    for const,constval in pairs(constants) do
-      lines[li] = lines[li]:gsub(const,constval)
-      
-      
+    
+    for i,v in ipairs(orderedconstants) do
+      lines[li] = lines[li]:gsub(v,constants[v])      
     end
   end
   lines = trimall(lines)
@@ -478,6 +512,9 @@ function nacho.compile(nch) -- compile .nch files to .ch8
   
 end
 
+
+
+
 function nacho.init(mode,cmode,extras) -- make a new instance of chip8
   local chip = {}
   
@@ -489,10 +526,22 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
   
   chip.dmp = function() end
   chip.dmpj = function() end
-  chip.unk = function() end
   chip.spr = function() end
+  chip.nop = function() end
   
   if chip.dumper then
+    print('loading chip in dumper mode!')
+    --DUMPER MODE OVERVIEW:
+    -- Dumper mode is a special mode that cannot write to memory, but can read.
+    -- Any instruction that writes to memory is skipped over.
+    
+    -- Instructions 3xnn, 4xnn, 5xy0, and 9xy0 will never skip.
+    -- However, PC+2 is added to a queue of instructions to check after the current path is exhausted by the decompiler.
+    chip.keys = {}
+    for i=0,15 do --set all keys to pressed
+      chip.keys[i] = {pressed=true,released=true,down=true}
+    end
+    
     chip.dump = {}
     chip.labels = {}
     chip.lcount = {}
@@ -508,6 +557,19 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       
       
       chip.dump[pos] = {length=length - 1,val=val,og=og,pos=pos}
+      
+      
+      for i=1,length do
+        local outval = ''
+        if i == 1 then
+          outval = val .. ' '
+        end
+        --print(pos + (i-1), outval .. '-- '.. nacho.bit.tohex(chip.mem[pos + (i-1)],2))
+        table.insert(chip.chipout.foundops, {
+          pos = pos + (i-1), val = outval .. '-- '.. nacho.bit.tohex(chip.mem[pos + (i-1)],2)
+        })
+      end
+        
     end
     chip.dmpj = function(txt,val,pos,pos2)
       if pos >= 512 then
@@ -537,7 +599,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
           --haha what
           chip.labels[val][val..'_'..chip.lcount[val]] = {pos=pos}
           lblname = val..'_'..chip.lcount[val]
-          chip.unk(pos)
+          
         end
         txt = txt:gsub('#LBL#',lblname)
       end
@@ -563,11 +625,13 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       
     end
     
-    chip.unk = function(pos)
-      if not chip.dump[pos] then -- don't overwrite a known with an unknown
-        chip.dmp('unknown',pos)
-      end
+    
+    
+    chip.nop = function(nop)
+      nop = nop or chip.pc
+      table.insert(chip.chipout.nops, nop)
     end
+    
   end
   
   chip.mode = mode or "common" -- define default mode.
@@ -732,12 +796,22 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
   end
   
   function chip.execute(c,x,y,n,nn,nnn)
+    
+    
+    if chip.dumper then
+      chip.chipout = {
+        foundops = {},
+        nops = {}
+      }
+    end
+    
     -- technically this doesnt have to be separate from the decode,
     -- but it's good practice for more complicated systems.
     if c == 0 then
       if nnn == 0x0e0 then
         -- clear screen
         chip.dmp('cls()')
+        chip.nop()
         chip.ms(109)
         
         pr('executing clear screen')
@@ -763,6 +837,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- jump
       pr('executing jump')
       chip.dmpj('jump(#LBL#)','jump',nnn)
+      chip.nop(nnn)
       chip.ms(105,5,chip.pc,nnn)
       
       pr('pc has gone from '..chip.pc.. ' to '..nnn)
@@ -772,6 +847,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- go to subroutine
       pr('executing go to subroutine')
       chip.dmpj('goto(#LBL#)','goto',nnn)
+      chip.nop(nnn)
       chip.ms(105,5,chip.pc,nnn)
       
       pr('pc has gone from '..chip.pc.. ' to '..nnn)
@@ -781,8 +857,8 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- skip if equal
       pr('executing skip if equal')
       chip.dmp('skipif(v'..x..' = '..nn..')')
-      chip.unk(chip.pc)
-      chip.unk(chip.pc+2)
+      chip.nop(chip.pc)
+      chip.nop(chip.pc+2)
       chip.ms(55,9,nn == chip.v[x])
       
       pr('nn is '..nn..', v'..x..' is ' .. chip.v[x])
@@ -796,8 +872,8 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- skip if not equal
       pr('executing skip if not equal')
       chip.dmp('skipif(v'..x..' != '..nn..')')
-      chip.unk(chip.pc)
-      chip.unk(chip.pc+2)
+      chip.nop(chip.pc)
+      chip.nop(chip.pc+2)
       chip.ms(55,9,nn ~= chip.v[x])
       
       pr('nn is '..nn..', v'..x..' is ' .. chip.v[x])
@@ -811,8 +887,8 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- register skip if equal
       pr('executing register skip if equal')
       chip.dmp('skipif(v'..x..' = v'..y..')')
-      chip.unk(chip.pc)
-      chip.unk(chip.pc+2)
+      chip.nop(chip.pc)
+      chip.nop(chip.pc+2)
       chip.ms(73,9,chip.v[x] == chip.v[y])
       
       pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
@@ -826,6 +902,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- set
       pr('executing set')
       chip.dmp('v'..x..' = '..nn)
+      chip.nop()
       chip.ms(27)
       
       pr('v'..x..' has gone from '..chip.v[x] .. ' to '.. nn)
@@ -834,16 +911,19 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- add
       pr('executing add')
       chip.dmp('v'..x..' += '..nn)
+      chip.nop()
       chip.ms(45) 
       
       pr('v'..x..' has gone from '..chip.v[x] .. ' to '.. (chip.v[x] + nn) % 256)
       chip.v[x] = (chip.v[x] + nn) % 256
     elseif c == 8 then
       chip.ms(200)
+      chip.nop()
       if n == 0 then
         -- register set
         pr('executing register set')
         chip.dmp('v'..x..' = v'..y)
+        
       
         pr('setting v'..x..' from ' .. chip.v[x]..' to v'..y..', which is ' .. chip.v[y])
         chip.v[x] = chip.v[y]
@@ -975,8 +1055,8 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- register skip if not equal
       pr('executing register skip if not equal')
       chip.dmp('skipif(v'..x..' != v'..y..')')
-      chip.unk(chip.pc)
-      chip.unk(chip.pc+2)
+      chip.nop(chip.pc)
+      chip.nop(chip.pc+2)
       chip.ms(73,9,chip.v[x] ~= chip.v[y])
       
       pr('v'..x..' is ' .. chip.v[x]..', v'..y..' is ' .. chip.v[y])
@@ -990,7 +1070,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- set index
       pr('executing set index')
       chip.dmp('index = '..nnn)
-      chip.unk(nnn)
+      chip.nop()
       chip.ms(55)
       
       pr('index has gone from '..chip.index .. ' to '.. nnn)
@@ -1000,15 +1080,15 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- offset jump
       pr('executing jump with offset')
       if not vxoffsetjump then
-        chip.dmp('jump('..nnn..' + v0')
-        chip.unk(nnn + chip.v[0])
+        chip.dmp('jump('..nnn..' + v0) -- DECOMPILER WARNING: THIS MIGHT BE MISSING POSSIBILITIES')
+        chip.nop(nnn + chip.v[0])
         chip.ms(73,9,chip.pc,nnn+chip.v[0])
         
         pr('pc has gone from '..chip.pc.. ' to '..nnn .. ' + v0, ('..nnn..'+'..chip.v[0]..'=' .. nnn + chip.v[0] .. ')')
         chip.pc = nnn + chip.v[0]
       else
-        chip.dmp('jump({'..x..'}'..y..n..' + v{'..x..'} -- {'..x..'} must be the same number')
-        chip.unk(nnn + chip.v[x])
+        chip.dmp('jump({'..x..'}'..y..n..' + v{'..x..'} --DECOMPILER WARNING: THIS MIGHT BE MISSING POSSIBILITIES! also, {'..x..'} must be the same number')
+        chip.nop(nnn + chip.v[x])
         chip.ms(73,9,chip.pc,nnn+chip.v[x])
         
         
@@ -1019,6 +1099,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- random number
       pr('executing random number')
       chip.dmp('v'..x..' = band(random(0,255), '..nn..')')
+      chip.nop()
       chip.ms(164)
       
       local rn = nacho.bit.band(math.random(0,255),nn)
@@ -1029,6 +1110,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       -- display to screen (oh god)
       pr('executing draw at '..chip.v[x]..','..chip.v[y])
       chip.dmpj('draw(v'..x..', v'..y..', '..n..')','spr',chip.index)
+      chip.nop()
       chip.spr(chip.index,n)
       chip.ms(22734,(n-8)*662) --this is my best guess, probably not be accurate
       
@@ -1059,8 +1141,8 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         --skip if key down
         pr('executing skip if key down')
         chip.dmp('if keydown(v'..x..') then jump('..chip.pc+2 ..') --skip next')
-        chip.unk(chip.pc)
-        chip.unk(chip.pc+2)
+        chip.nop(chip.pc)
+        chip.nop(chip.pc+2)
         
         
         pr('v'..x..' is'..nacho.bit.tohex(chip.v[x],1))
@@ -1089,8 +1171,8 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         --skip if key not down
         pr('executing skip if key not down')
         chip.dmp('if not keydown(v'..x..') then jump('..chip.pc+2 ..') --skip next')
-        chip.unk(chip.pc)
-        chip.unk(chip.pc+2)
+        chip.nop(chip.pc)
+        chip.nop(chip.pc+2)
         
         pr('v'..x..' is'..nacho.bit.tohex(chip.v[x],1))
         if chip.keys then
@@ -1120,6 +1202,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         -- set register to delay
         pr('executing set register to delay')
         chip.dmp('v'..x..' = delay')
+        chip.nop()
         chip.ms(45)
 
         pr('setting v'..x..' from '.. chip.v[x]..' to '.. chip.delay)
@@ -1128,6 +1211,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         --wait for key
         pr('executing wait for key')
         chip.dmp('waitforkey(v'..x ..')')
+        chip.nop()
         
         
         if chip.keys then
@@ -1164,6 +1248,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         -- set delay to register
         pr('executing set delay to resgister')
         chip.dmp('delay = v'..x)
+        chip.nop()
         chip.ms(45)
         
         pr('setting delay from '.. chip.delay ..' to v'..x..', which is '..chip.v[x])
@@ -1172,6 +1257,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         -- set sound timer to register
         pr('executing set sound timer to resgister')
         chip.dmp('sound = v'..x)
+        chip.nop()
         chip.ms(45)
         
         pr('setting sound from '.. chip.sound ..' to v'..x..', which is '..chip.v[x])
@@ -1179,7 +1265,8 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       elseif nn == 0x1e then
         -- index add
         pr('executing index add')
-        chip.dmp('index += v'..x)
+        chip.nop()
+        chip.dmp('index += v'..x..' -- DECOMPILER WARNING: THIS MIGHT BE MISSING POSSIBILITIES')
         
         pr('adding v'..x..'('..chip.v[x]..') to index ('..chip.index..') ('..chip.index..'+'..chip.v[x]..'='..(chip.index+chip.v[x])%4096 ..')')
         local newindex = chip.index+chip.v[x]
@@ -1198,6 +1285,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         --get font character
         pr('executing get font character')
         chip.dmp('font(v'..x..')')
+        chip.nop() 
         chip.ms(91)
         
         pr('v'..x..' is ' .. nacho.bit.tohex(chip.v[x]))
@@ -1207,7 +1295,8 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       elseif nn == 0x33 then
         --decimal split
         pr('executing decimal split')
-        
+        chip.dmp('decimalsplit(v'..x..')')
+        chip.nop()
         chip.ms(364+(math.floor(num/(10^2))%10+math.floor(num/(10^1))%10+math.floor(num)%10)*73)
         -- the math doesn't check out *exactly*, but its whats on the page.
         
@@ -1227,7 +1316,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         --store memory
         pr('executing store to memory')
         chip.dmp('for i=0,'..x..' do mem[index + i] = vi')
-        
+        chip.nop()
         chip.ms(64*(x+1))
         
         pr('storing from v0 to v'..x..', starting at mem address '..chip.index)
@@ -1245,7 +1334,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
         --read memory
         pr('executing read from memory')
         chip.dmp('for i=0,'..x..' do vi = mem[index + i]')
-        
+        chip.nop()
         chip.ms(64*(x+1))
         
         pr('reading from mem address '..chip.index ..' to '..chip.index+x..' and storing in v0 to v'..x)
@@ -1263,6 +1352,12 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     else
       print('!!!!!!!!!!!!!!!!!unknown instruction!!!!!!!!!!!!!!!!!!!!')
     end
+    
+    if chip.dumper then
+      return chip.chipout
+    end
+    
+    
   end
   
   function chip.timerdec()
@@ -1281,6 +1376,22 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
       
   end
   
+  function chip.dumpupdate(pc,memstate)
+    chip.pc = pc
+    chip.mem = nacho.copy(memstate)
+    
+    
+    local b1,b2 = chip.mem[chip.pc],chip.mem[chip.pc+1]
+    print(b1,b2)
+    chip.pc = chip.pc + 2 -- increment pc
+    local c,x,y,n,nn,nnn = chip.decode(b1,b2) -- decode the two bytes
+    local chipout = chip.execute(c,x,y,n,nn,nnn) -- interpret the decoded bytes
+    
+    local output = {foundops = chip.chipout.foundops,nops = chip.chipout.nops, memstate = nacho.copy(chip.mem)}
+    
+    return output
+  end
+  
   function chip.update()
     --fetch 
     local b1,b2 = chip.mem[chip.pc],chip.mem[chip.pc+1]
@@ -1288,6 +1399,7 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     local c,x,y,n,nn,nnn = chip.decode(b1,b2) -- decode the two bytes
     chip.execute(c,x,y,n,nn,nnn) -- interpret the decoded bytes
   end
+  
   
   function chip.timedupdate()
     -- microsecond timing values from
@@ -1299,6 +1411,8 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
     end
     return opsrun
   end
+  
+  
   
   function chip.savedump()
     if chip.dumper then
@@ -1339,8 +1453,108 @@ function nacho.init(mode,cmode,extras) -- make a new instance of chip8
   end
   
   
+  
+  
   return chip
   
+end
+
+
+function nacho.decompile(mem)
+  print('!!!!!!!!!!!!!!!!!!!!DECOMPILE START!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+  
+  
+  
+  
+  
+  local chip = nacho.init('common',nil,{dumper = true})
+  
+  
+  chip = nacho.loadtabletochip(mem,chip)
+  
+  local queuedstates = {
+    {
+      pc = 512,
+      memstate = nacho.copy(chip.mem),
+      cycles = 0
+    },
+  
+  } -- start searching at 512
+  
+  local decomp = {}
+  
+  for i,v in ipairs(mem) do
+    
+    decomp[i-1] = {val = '#DECOMP_UNKNOWN', cycle = -1}
+  end
+  
+  local curcycle = 0
+  
+  local maxcycles = 1000
+  
+  while #queuedstates ~= 0 and curcycle < maxcycles do
+    local newstate = table.remove(queuedstates)
+    print('pc:' .. newstate.pc)
+    -- output = {foundops = chipout.foundops,nops = chipout.nops, memstate = nacho.copy(chip.mem)}
+    local output = chip.dumpupdate(newstate.pc,newstate.memstate)
+    
+    curcycle = newstate.cycles + 1
+    
+    
+    
+    for i,v in ipairs(output.foundops) do      -- pos = pos + (i-1), val = outval .. nacho.bit.tohex(chip.mem[pos + (i-1)],2)
+      if decomp[v.pos-512].cycle > curcycle or decomp[v.pos-512].cycle == -1 then
+        
+        decomp[v.pos-512] = {val = v.val, cycle = curcycle}
+      end
+    end
+    
+    
+    
+    for i,v in ipairs(output.nops) do
+      if decomp[v-512].val == '#DECOMP_UNKNOWN' then
+        table.insert(queuedstates,{
+          pc = v,
+          memstate = output.memstate,
+          cycles = curcycle
+        })
+      end
+    end
+      
+    
+    local queuestr = ''
+    for i,v in ipairs(queuedstates) do
+      queuestr =  v.pc .. '@' .. v.cycles ..', ' .. queuestr 
+    end
+    print('done, queue contains '..queuestr)
+    
+  end
+  
+  
+  
+  local dstring = '--NCH decomp\n\n'
+  
+
+  
+  for i,v in ipairs(mem) do
+    
+    local lblname = nil
+    local lbltext = ''
+    
+    for _,lb in pairs(chip.labels) do
+      for k,vv in pairs(lb) do
+        if vv.pos == i-1+512 then
+          lblname = k
+        end
+      end
+    end
+    if lblname then
+      lbltext = '@'..lblname..':\n'
+    end
+    
+    dstring = dstring .. lbltext .. decomp[i-1].val .. '\n'
+  end
+  return(dstring)
 end
 
 
